@@ -23,10 +23,7 @@ shell = (function () {
 		var hash = getHash();
 	};
 
-	var buttonHandler = function (event, msg_map){
-		
-		console.log(msg_map.action, msg_map.data);
-		
+	var buttonHandler = function (event, msg_map){		
 		switch (msg_map.action) {
 			case 'setField'	: middle.initField(msg_map.data); break;
 			case 'solve'	: break;

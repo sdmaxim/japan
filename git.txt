@@ -5,3 +5,4 @@ git commit -m 'version'
 git remote add japan https://github.com/sdmaxim/japan.git
 git push japan master
 git pull japan master
+git config --global http.proxy http://username:password@cproxy.umc.com.ua:3128

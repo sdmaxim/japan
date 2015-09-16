@@ -3,7 +3,10 @@ middle = (function () {
       main_html : String()
          + '<div class="header"></div>'
          + '<div class="field"></div>',
-      smallBoxSize : 25
+      smallBoxSize : 25,
+      width : 0,
+      height : 0,
+      qBlocks : 0
    },
    field = [],
    stateMap = {
@@ -15,13 +18,17 @@ middle = (function () {
 	}
 
    var initField = function (options) {
-      var width = parseInt(options.width, 10);
-      var height = parseInt(options.height, 10);
-      var qBlocks = parseInt(options.qBlocks, 10);
+      setConfigMap(options);
+
+      var width = configMap.width;
+      var height = configMap.height;
+      var qBlocks = configMap.qBlocks;
+
       var margineCss = 2;
       var smallBoxSize = configMap.smallBoxSize;
       var fullSmallBoxSize = (smallBoxSize+margineCss*2);
       var spaceBoxSize = fullSmallBoxSize*qBlocks - margineCss*2;
+      var cellConf = {};
       
       var $spaceBox = $('<div>', {
          class : 'spaceBox'
@@ -41,24 +48,46 @@ middle = (function () {
          'height' : fullSmallBoxSize*(height+qBlocks)
       });
 
-      var tempType = '';
       for (var i = 0; i < height+qBlocks; i++) {
          for (var j = 0; j < width+qBlocks; j++) {
             if ((i >= qBlocks) || (j >= qBlocks)) {
+               
                if ((i < qBlocks) || (j < qBlocks)) {
-                  tempType = 'input';
+                  cellConf.type = 'input';
                } else {
-                  tempType = 'work';
+                  cellConf.type = 'work';
                }
-               field[i, j] = new Cell(tempType);
+               cellConf.i = i;
+               cellConf.j = j;
+               field[i, j] = new Cell(cellConf);
                field[i, j].init();
             }
          }
       }
    }
 
-   var Cell = function (type) {
-      this.cellType = type;
+   var checkSumLength = function () {
+      
+   }
+
+   var checkInputNumber = function (val) {
+      var num = Number(val.replace(/\D+/g,""));
+      if (num > 0) {
+         //Проверка на превышение суммы всех инпутовых боксов 
+         //высоты/ширины столбца/строки         
+      } else {
+         num = "";
+      }
+      return num;
+   }
+
+   var Cell = function (cellConf) {
+      this.type = cellConf.type;
+      this.i = cellConf.i;
+      this.j = cellConf.j;
+      this.$cell = {};
+      this.number = "";
+      this.condition = "";
 
       this.show = function () {
          jqueryMap.$field.toggleClass('.work');
@@ -67,20 +96,43 @@ middle = (function () {
          jqueryMap.$field.toggleClass('.work-whitecell');
       }
       this.init = function () {
-         switch (this.cellType) {
+         switch (this.type) {
             case 'input' :
-               this.cell = $('<input>', {
+               this.$cell = $('<input>', {
                   class : "input",
                   text  : "0"
                });
+               this.$cell.focusout(function() {
+                  var iTmp, jTmp, sum = 0;
+                  this.number = checkInputNumber($(this).val());
+
+                  /*for (var x = 0; x < configMap.qBlocks; x++) {
+
+                     if (this.i < configMap.qBlocks && 
+                         this.j > configMap.qBlocks) {
+                        iTmp = x; jTmp = this.j;
+                     } else {
+                        jTmp = x; iTmp = this.i;
+                     }
+                     if (iTmp == this.i && jTmp == this.j) {
+                        sum += this.number;
+                     } else {
+                        sum += field[iTmp, jTmp].number; 
+                     }
+                     console.log(iTmp + " " + jTmp + " " + sum + " " + this.number);
+                  }
+                  console.log(sum);*/
+
+                  $(this).val(this.number);
+               });
                break;
             case 'work' :
-               this.cell = $('<div>', {
+               this.$cell = $('<div>', {
                   class : "work"
                });
                break;
          };
-         jqueryMap.$field.append( this.cell );
+         jqueryMap.$field.append( this.$cell );
       }
    }
 
@@ -88,6 +140,12 @@ middle = (function () {
       var $container = stateMap.$container;
       jqueryMap.$header = $container.find('.header');
       jqueryMap.$field = $container.find('.field');
+   }
+
+   var setConfigMap = function (options) {
+      configMap.width = parseInt(options.width, 10);
+      configMap.height = parseInt(options.height, 10);
+      configMap.qBlocks = parseInt(options.qBlocks, 10);
    }
 
    var initModule = function ( $container ) {

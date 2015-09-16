@@ -103,6 +103,7 @@ div.left-management li.menuitem{
 	height: 25px;
 	cursor: pointer;
 	box-sizing: border-box;
+	text-align: center;
 }
 
 #middle .work, #middle .work-whitecell {
