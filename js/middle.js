@@ -60,7 +60,7 @@ middle = (function () {
                cellConf.i = i;
                cellConf.j = j;
                field[i, j] = new Cell(cellConf);
-               field[i, j].init();
+               //field[i, j].init();
             }
          }
       }
@@ -82,12 +82,12 @@ middle = (function () {
    }
 
    var Cell = function (cellConf) {
-      this.type = cellConf.type;
-      this.i = cellConf.i;
-      this.j = cellConf.j;
-      this.$cell = {};
-      this.number = "";
-      this.condition = "";
+      var type = cellConf.type;
+      var i = cellConf.i;
+      var j = cellConf.j;
+      var $cell = {};
+      var number = 0;
+      var condition = "";
 
       this.show = function () {
          jqueryMap.$field.toggleClass('.work');
@@ -95,45 +95,48 @@ middle = (function () {
       this.hide = function () {
          jqueryMap.$field.toggleClass('.work-whitecell');
       }
-      this.init = function () {
-         switch (this.type) {
-            case 'input' :
-               this.$cell = $('<input>', {
-                  class : "input",
-                  text  : "0"
-               });
-               this.$cell.focusout(function() {
-                  var iTmp, jTmp, sum = 0;
-                  this.number = checkInputNumber($(this).val());
 
-                  /*for (var x = 0; x < configMap.qBlocks; x++) {
+      switch (type) {
+         case 'input' :
+            $cell = $('<input>', {
+               class : "input",
+               text  : ""
+            });
+            $cell.focusout(function() {
+               var iTmp, jTmp, sum = 0;
+               number = checkInputNumber($(this).val());
 
-                     if (this.i < configMap.qBlocks && 
-                         this.j > configMap.qBlocks) {
-                        iTmp = x; jTmp = this.j;
-                     } else {
-                        jTmp = x; iTmp = this.i;
-                     }
-                     if (iTmp == this.i && jTmp == this.j) {
-                        sum += this.number;
-                     } else {
-                        sum += field[iTmp, jTmp].number; 
-                     }
-                     console.log(iTmp + " " + jTmp + " " + sum + " " + this.number);
+               for (var x = 0; x < configMap.qBlocks; x++) {
+
+                  if (i < configMap.qBlocks && 
+                      j >= configMap.qBlocks) {
+                     iTmp = x; jTmp = j;
+                  } else 
+                  if (i >= configMap.qBlocks && 
+                      j < configMap.qBlocks) {
+                     jTmp = x; iTmp = i;
                   }
-                  console.log(sum);*/
+                  if (iTmp == i && jTmp == j) {
+                     sum += 0 + number;
+                  } else {
+                     sum += 0 + field[iTmp, jTmp].number; 
+                  }
+                  console.log("x:" + x + ", iTmp:" + iTmp + ", jTmp:" + jTmp + " " + field[iTmp, jTmp].number + " ");
+               }
+               //console.log("+" + sum + " ");
 
-                  $(this).val(this.number);
-               });
-               break;
-            case 'work' :
-               this.$cell = $('<div>', {
-                  class : "work"
-               });
-               break;
-         };
-         jqueryMap.$field.append( this.$cell );
-      }
+               $(this).val(number);
+            });
+            break;
+         case 'work' :
+            $cell = $('<div>', {
+               class : "work"
+            });
+            break;
+      };
+      jqueryMap.$field.append( $cell );
+
+      return { number : number };
    }
 
    var setJqueryMap = function () {
