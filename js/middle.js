@@ -8,7 +8,7 @@ middle = (function () {
       height : 0,
       qBlocks : 0
    },
-   field = [],
+   field = new Array(),
    stateMap = {
 		$container : {}
 	},
@@ -42,16 +42,17 @@ middle = (function () {
       $spaceBox = jqueryMap.$field.find('spaceBox');
       var margineCssAuto = $spaceBox.css('margin-left');
       var widthCss = $spaceBox.css('width');
+      var i, j;
 
       jqueryMap.$field.css({
          'width' : fullSmallBoxSize*(width+qBlocks),
          'height' : fullSmallBoxSize*(height+qBlocks)
       });
 
-      for (var i = 0; i < height+qBlocks; i++) {
-         for (var j = 0; j < width+qBlocks; j++) {
+      for (i = 0; i < height+qBlocks; i++) {
+         field[i] = new Array();
+         for (j = 0; j < width+qBlocks; j++) {
             if ((i >= qBlocks) || (j >= qBlocks)) {
-               
                if ((i < qBlocks) || (j < qBlocks)) {
                   cellConf.type = 'input';
                } else {
@@ -59,7 +60,7 @@ middle = (function () {
                }
                cellConf.i = i;
                cellConf.j = j;
-               field[i, j] = new Cell(cellConf);
+               field[i][j] = new Cell(cellConf);
                //field[i, j].init();
             }
          }
@@ -83,10 +84,10 @@ middle = (function () {
 
    var Cell = function (cellConf) {
       var type = cellConf.type;
-      var i = cellConf.i;
-      var j = cellConf.j;
+      var iCell = cellConf.i;
+      var jCell = cellConf.j;
       var $cell = {};
-      var number = 0;
+      this.number = 0;
       var condition = "";
 
       this.show = function () {
@@ -96,6 +97,10 @@ middle = (function () {
          jqueryMap.$field.toggleClass('.work-whitecell');
       }
 
+      this.getNum = function () {
+         return number;
+      }
+
       switch (type) {
          case 'input' :
             $cell = $('<input>', {
@@ -103,27 +108,34 @@ middle = (function () {
                text  : ""
             });
             $cell.focusout(function() {
-               var iTmp, jTmp, sum = 0;
-               number = checkInputNumber($(this).val());
+               var i, j, sum = 0, quan = 0, strSize = 0;
+               var number = checkInputNumber($(this).val());
+
+               if (number > 0) {
+                  quan++;
+               }
 
                for (var x = 0; x < configMap.qBlocks; x++) {
 
-                  if (i < configMap.qBlocks && 
-                      j >= configMap.qBlocks) {
-                     iTmp = x; jTmp = j;
-                  } else 
-                  if (i >= configMap.qBlocks && 
-                      j < configMap.qBlocks) {
-                     jTmp = x; iTmp = i;
+                  if (iCell < configMap.qBlocks && jCell >= configMap.qBlocks) {
+                     i = x; j = jCell; strSize = 
                   }
-                  if (iTmp == i && jTmp == j) {
+                  if (iCell >= configMap.qBlocks && jCell < configMap.qBlocks) {
+                     j = x; i = iCell;
+                  }
+                  if (i == iCell && j == jCell) {
                      sum += 0 + number;
                   } else {
-                     sum += 0 + field[iTmp, jTmp].number; 
+                     sum += 0 + field[i][j].number;
+                     if (field[i][j].number > 0) {
+                        quan++;
+                     }
                   }
-                  console.log("x:" + x + ", iTmp:" + iTmp + ", jTmp:" + jTmp + " " + field[iTmp, jTmp].number + " ");
+                  //console.log("x:" + x + ", i:" + i + ", j:" + j + " ");
                }
-               //console.log("+" + sum + " ");
+               if ((sum + quan - 1) < )
+               field[iCell][jCell].number = number;
+               console.log("sum:" + sum + ", quan: " + quan);
 
                $(this).val(number);
             });
@@ -135,8 +147,6 @@ middle = (function () {
             break;
       };
       jqueryMap.$field.append( $cell );
-
-      return { number : number };
    }
 
    var setJqueryMap = function () {
