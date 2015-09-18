@@ -77,7 +77,7 @@ middle = (function () {
          //Проверка на превышение суммы всех инпутовых боксов 
          //высоты/ширины столбца/строки         
       } else {
-         num = "";
+         num = null;
       }
       return num;
    }
@@ -87,7 +87,7 @@ middle = (function () {
       var iCell = cellConf.i;
       var jCell = cellConf.j;
       var $cell = {};
-      this.number = 0;
+      this.number = null;
       var condition = "";
 
       this.show = function () {
@@ -97,8 +97,8 @@ middle = (function () {
          jqueryMap.$field.toggleClass('.work-whitecell');
       }
 
-      this.getNum = function () {
-         return number;
+      this.setNum = function (num) {
+         this.number = num;
       }
 
       switch (type) {
@@ -107,37 +107,43 @@ middle = (function () {
                class : "input",
                text  : ""
             });
-            $cell.focusout(function() {
+            $cell.focusout(this, function(that) {
                var i, j, sum = 0, quan = 0, strSize = 0;
-               var number = checkInputNumber($(this).val());
+               var num = checkInputNumber($(this).val());
 
-               if (number > 0) {
+               if (num > 0) {
                   quan++;
                }
 
                for (var x = 0; x < configMap.qBlocks; x++) {
 
                   if (iCell < configMap.qBlocks && jCell >= configMap.qBlocks) {
-                     i = x; j = jCell; strSize = 
+                     i = x; 
+                     j = jCell;
+                     stringBoxsSize = configMap.width;
                   }
                   if (iCell >= configMap.qBlocks && jCell < configMap.qBlocks) {
-                     j = x; i = iCell;
+                     j = x; 
+                     i = iCell;
+                     stringBoxsSize = configMap.height;
                   }
                   if (i == iCell && j == jCell) {
-                     sum += 0 + number;
+                     sum += num;
                   } else {
-                     sum += 0 + field[i][j].number;
+                     sum += field[i][j].number;
                      if (field[i][j].number > 0) {
                         quan++;
                      }
                   }
                   //console.log("x:" + x + ", i:" + i + ", j:" + j + " ");
                }
-               if ((sum + quan - 1) < )
-               field[iCell][jCell].number = number;
-               console.log("sum:" + sum + ", quan: " + quan);
-
-               $(this).val(number);
+               if ((sum + quan - 1) <= stringBoxsSize) {
+                  that.data.setNum(num);
+               } else {
+                  num = null;
+               }
+               console.log("sum:" + sum + ", quan: " + quan + ", height:" + (sum + quan - 1));
+               $(this).val(num);
             });
             break;
          case 'work' :
