@@ -99,6 +99,7 @@ middle = (function () {
 
       this.setNum = function (num) {
          this.number = num;
+         //$cell.val(num);
       }
 
       switch (type) {
@@ -118,7 +119,7 @@ middle = (function () {
                for (var x = 0; x < configMap.qBlocks; x++) {
 
                   if (iCell < configMap.qBlocks && jCell >= configMap.qBlocks) {
-                     i = x; 
+                     i = x;
                      j = jCell;
                      stringBoxsSize = configMap.width;
                   }
@@ -153,6 +154,7 @@ middle = (function () {
             break;
       };
       jqueryMap.$field.append( $cell );
+      //$cell = jqueryMap.$field.last();
    }
 
    var setJqueryMap = function () {
