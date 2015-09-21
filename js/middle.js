@@ -86,7 +86,7 @@ middle = (function () {
       var type = cellConf.type;
       var iCell = cellConf.i;
       var jCell = cellConf.j;
-      var $cell = {};
+      this.$cell = {};
       this.number = null;
       var condition = "";
 
@@ -99,16 +99,16 @@ middle = (function () {
 
       this.setNum = function (num) {
          this.number = num;
-         //$cell.val(num);
+         this.$cell.val(num);
       }
 
       switch (type) {
          case 'input' :
-            $cell = $('<input>', {
+            this.$cell = $('<input>', {
                class : "input",
                text  : ""
             });
-            $cell.focusout(this, function(that) {
+            this.$cell.focusout(this, function(that) {
                var i, j, sum = 0, quan = 0, strSize = 0;
                var num = checkInputNumber($(this).val());
 
@@ -136,25 +136,21 @@ middle = (function () {
                         quan++;
                      }
                   }
-                  //console.log("x:" + x + ", i:" + i + ", j:" + j + " ");
                }
-               if ((sum + quan - 1) <= stringBoxsSize) {
-                  that.data.setNum(num);
-               } else {
+               if (!((sum + quan - 1) <= stringBoxsSize)) {
                   num = null;
                }
+               that.data.setNum(num);
                console.log("sum:" + sum + ", quan: " + quan + ", height:" + (sum + quan - 1));
-               $(this).val(num);
             });
             break;
          case 'work' :
-            $cell = $('<div>', {
+            this.$cell = $('<div>', {
                class : "work"
             });
             break;
       };
-      jqueryMap.$field.append( $cell );
-      //$cell = jqueryMap.$field.last();
+      this.$cell.appendTo( jqueryMap.$field );
    }
 
    var setJqueryMap = function () {
