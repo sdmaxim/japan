@@ -59,7 +59,7 @@ div.left-management li.menuitem{
 
 #middle {
 	position: absolute;
-	background-color: #88FF88;
+	background-color: #E6FFED;
 	left: 150px;
 	top: 40px;
 	bottom: 40px;
@@ -96,7 +96,7 @@ div.left-management li.menuitem{
 
 #middle .input {
 	float: left;
-	background: #FFF;
+	background: #EDFD78;
 	border: 1px solid #888;
 	margin: 2px;
 	width: 25px;
@@ -106,7 +106,7 @@ div.left-management li.menuitem{
 	text-align: center;
 }
 
-#middle .work, #middle .work-whitecell {
+#middle .work, #middle .freecell {
 	float: left;
 	background: #C55;
 	border: 1px solid #888;
@@ -115,6 +115,6 @@ div.left-management li.menuitem{
 	height: 25px;
 	box-sizing: border-box;
 }
-#middle .work-whitecell {
-	background: #AAA;
+#middle .freecell {
+	background: #FBFFFB;
 }

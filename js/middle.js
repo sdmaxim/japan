@@ -67,88 +67,97 @@ middle = (function () {
       }
    }
 
-   var checkSumLength = function () {
+   //Проверка суммы уже введенных чисел в ячейки с новым числом
+   var checkSumLength = function (iCell, jCell, num) {
+      var i, j, sum = num, quan = 1, stringBoxsSize = 0;
       
-   }
+      //Число должно быть больше нуля
+      if (!(num > 0)) return null;
 
-   var checkInputNumber = function (val) {
-      var num = Number(val.replace(/\D+/g,""));
-      if (num > 0) {
-         //Проверка на превышение суммы всех инпутовых боксов 
-         //высоты/ширины столбца/строки         
-      } else {
+      //Суммирование данной строки чисел
+      for (var cellInd = 0; cellInd < configMap.qBlocks; cellInd++) {
+         switch (checkWorkCell(iCell, jCell)) {
+            case "top": 
+               i = cellInd;
+               j = jCell;
+               stringBoxsSize = configMap.width;
+            break;
+            case "left":
+               j = cellInd; 
+               i = iCell;
+               stringBoxsSize = configMap.height;
+            break;
+         }
+         if (i != iCell || j != jCell) {
+            sum += field[i][j].number;
+            if (field[i][j].number > 0) {
+               quan++;
+            }
+         }
+      }
+
+      //Если сумма в строке + мин. отступы превышает длину строки = null
+      if (!((sum + quan - 1) <= stringBoxsSize)) {
          num = null;
       }
       return num;
    }
 
+   var checkWorkCell = function (iCell, jCell) {
+      if (iCell < configMap.qBlocks && jCell >= configMap.qBlocks) {
+         return "top";
+      }
+      if (iCell >= configMap.qBlocks && jCell < configMap.qBlocks) {
+         return "left";
+      }
+      return true;
+   }
+ 
+   //Коструктор ячейки поля
    var Cell = function (cellConf) {
-      var type = cellConf.type;
+      this.type = cellConf.type;
       var iCell = cellConf.i;
       var jCell = cellConf.j;
       this.$cell = {};
       this.number = null;
       var condition = "";
 
-      this.show = function () {
-         jqueryMap.$field.toggleClass('.work');
+      this.workCell = function () {
+         if (checkWorkCell(iCell, jCell)) {
+            jqueryMap.$field.toggleClass('.work');
+            this.type = "work";
+         }
       }
-      this.hide = function () {
-         jqueryMap.$field.toggleClass('.work-whitecell');
+      this.freeCell = function () {
+         if (checkWorkCell(iCell, jCell)) {
+            jqueryMap.$field.toggleClass('.freecell');
+            this.type = "freecell";
+         }
       }
 
+      //Установка числа в ячейку
       this.setNum = function (num) {
-         this.number = num;
-         this.$cell.val(num);
+         num = Number(num.replace(/\D+/g,""));
+         this.number = checkSumLength(iCell, jCell, num);
+         this.$cell.val(this.number);
       }
 
-      switch (type) {
+      //Выбор между рабочими и управляющими ячейками
+      switch (this.type) {
          case 'input' :
             this.$cell = $('<input>', {
                class : "input",
                text  : ""
             });
             this.$cell.focusout(this, function(that) {
-               var i, j, sum = 0, quan = 0, strSize = 0;
-               var num = checkInputNumber($(this).val());
-
-               if (num > 0) {
-                  quan++;
-               }
-
-               for (var x = 0; x < configMap.qBlocks; x++) {
-
-                  if (iCell < configMap.qBlocks && jCell >= configMap.qBlocks) {
-                     i = x;
-                     j = jCell;
-                     stringBoxsSize = configMap.width;
-                  }
-                  if (iCell >= configMap.qBlocks && jCell < configMap.qBlocks) {
-                     j = x; 
-                     i = iCell;
-                     stringBoxsSize = configMap.height;
-                  }
-                  if (i == iCell && j == jCell) {
-                     sum += num;
-                  } else {
-                     sum += field[i][j].number;
-                     if (field[i][j].number > 0) {
-                        quan++;
-                     }
-                  }
-               }
-               if (!((sum + quan - 1) <= stringBoxsSize)) {
-                  num = null;
-               }
-               that.data.setNum(num);
-               console.log("sum:" + sum + ", quan: " + quan + ", height:" + (sum + quan - 1));
+               that.data.setNum($(this).val());
             });
-            break;
+         break;
          case 'work' :
             this.$cell = $('<div>', {
                class : "work"
             });
-            break;
+         break;
       };
       this.$cell.appendTo( jqueryMap.$field );
    }
@@ -169,7 +178,6 @@ middle = (function () {
       $container.append( configMap.main_html );
       stateMap.$container = $container;
       setJqueryMap();
-
    }
 
    return {
