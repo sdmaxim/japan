@@ -15,7 +15,24 @@ middle = (function () {
 	jqueryMap = {
 		$field : {},
       $header : {}
-	}
+	},
+   ZERO = 0, TOP = 1, LEFT = 2, WORK = 3, FREE = 4;
+
+   var getCellType = function (iCell, jCell) {
+      if (iCell < configMap.qBlocks && jCell >= configMap.qBlocks) {
+         return TOP;
+      }
+      if (iCell >= configMap.qBlocks && jCell < configMap.qBlocks) {
+         return LEFT;
+      }
+      if (iCell > 0 && jCell > 0) {
+         if (iCell < configMap.qBlocks && jCell < configMap.qBlocks) {
+            return ZERO;
+         }
+         return WORK;
+      }
+      return false; 
+   }
 
    var initField = function (options) {
       setConfigMap(options);
@@ -52,16 +69,10 @@ middle = (function () {
       for (i = 0; i < height+qBlocks; i++) {
          field[i] = new Array();
          for (j = 0; j < width+qBlocks; j++) {
-            if ((i >= qBlocks) || (j >= qBlocks)) {
-               if ((i < qBlocks) || (j < qBlocks)) {
-                  cellConf.type = 'input';
-               } else {
-                  cellConf.type = 'work';
-               }
+            if (getCellType(i, j) > ZERO) {
                cellConf.i = i;
                cellConf.j = j;
                field[i][j] = new Cell(cellConf);
-               //field[i, j].init();
             }
          }
       }
@@ -76,14 +87,14 @@ middle = (function () {
 
       //Суммирование данной строки чисел
       for (var cellInd = 0; cellInd < configMap.qBlocks; cellInd++) {
-         switch (checkWorkCell(iCell, jCell)) {
-            case "top": 
+         switch (getCellType(iCell, jCell)) {
+            case TOP: 
                i = cellInd;
                j = jCell;
                stringBoxsSize = configMap.width;
             break;
-            case "left":
-               j = cellInd; 
+            case LEFT:
+               j = cellInd;
                i = iCell;
                stringBoxsSize = configMap.height;
             break;
@@ -102,36 +113,26 @@ middle = (function () {
       }
       return num;
    }
-
-   var checkWorkCell = function (iCell, jCell) {
-      if (iCell < configMap.qBlocks && jCell >= configMap.qBlocks) {
-         return "top";
-      }
-      if (iCell >= configMap.qBlocks && jCell < configMap.qBlocks) {
-         return "left";
-      }
-      return true;
-   }
  
    //Коструктор ячейки поля
-   var Cell = function (cellConf) {
-      this.type = cellConf.type;
-      var iCell = cellConf.i;
-      var jCell = cellConf.j;
+   var Cell = function (options) {
+      var iCell = options.i;
+      var jCell = options.j;
+      var condition = "";
       this.$cell = {};
       this.number = null;
-      var condition = "";
+      this.type = 0;
 
       this.workCell = function () {
-         if (checkWorkCell(iCell, jCell)) {
+         if (getCellType(iCell, jCell) >= WORK) {
             jqueryMap.$field.toggleClass('.work');
-            this.type = "work";
+            this.type = WORK;
          }
       }
       this.freeCell = function () {
-         if (checkWorkCell(iCell, jCell)) {
+         if (getCellType(iCell, jCell) >= WORK) {
             jqueryMap.$field.toggleClass('.freecell');
-            this.type = "freecell";
+            this.type = FREE;
          }
       }
 
@@ -141,10 +142,14 @@ middle = (function () {
          this.number = checkSumLength(iCell, jCell, num);
          this.$cell.val(this.number);
       }
+      /*var handleFocus = function(that) {
+         that.data.setNum($(this).val());
+      }*/
 
       //Выбор между рабочими и управляющими ячейками
-      switch (this.type) {
-         case 'input' :
+      switch (getCellType(iCell, jCell)) {
+         case TOP:
+         case LEFT:
             this.$cell = $('<input>', {
                class : "input",
                text  : ""
@@ -153,9 +158,9 @@ middle = (function () {
                that.data.setNum($(this).val());
             });
          break;
-         case 'work' :
+         case WORK:
             this.$cell = $('<div>', {
-               class : "work"
+               class : "freecell"
             });
          break;
       };
