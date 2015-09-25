@@ -20,15 +20,60 @@ middle = (function () {
    ZERO = 0, TOP = 1, LEFT = 2, WORK = 3, FREE = 4,
    margineCss = 2;
 
-   var getCellType = function (iCell, jCell) {
-      if (iCell < configMap.qBlocks && jCell >= configMap.qBlocks) {
+   //Вычисление индекса в зависимости от направления и текущего индекса
+   var getInd = function(xCell, yCell, ind) {
+      var x, y, xInc, yInc, fieldLength;
+      switch (getCellType(xCell, yCell)) {
+         case TOP: 
+            xInc = 0;
+            yInc = 1;
+            fieldLength = configMap.width;
+         break;
+         case LEFT:
+            xInc = 1;
+            yInc = 0;
+            fieldLength = configMap.height;
+         break;
+      }
+
+      inputLength = configMap.qBlocks;
+
+      x = xCell*yInc + ind*xInc;
+      y = yCell*xInc + ind*yInc;
+
+      return {
+         x : x,
+         y : y,
+         fieldLength : fieldLength,
+         inputLength : inputLength         
+      }
+   }
+
+   var getStringMask = function (x, y) {
+
+   }
+
+   var fillString = function (x, y) {
+      var ind, fieldLength, inputLength, inputInd, fieldInd;
+      //ind = getInd()
+      for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd++) {
+
+      }
+   }
+
+   var linearSeach = function (x, y) {
+
+   }
+
+   var getCellType = function (xCell, yCell) {
+      if (yCell < configMap.qBlocks && xCell >= configMap.qBlocks) {
          return TOP;
       }
-      if (iCell >= configMap.qBlocks && jCell < configMap.qBlocks) {
+      if (yCell >= configMap.qBlocks && xCell < configMap.qBlocks) {
          return LEFT;
       }
-      if (iCell > 0 && jCell > 0) {
-         if (iCell < configMap.qBlocks && jCell < configMap.qBlocks) {
+      if (xCell > 0 && yCell > 0) {
+         if (yCell < configMap.qBlocks && xCell < configMap.qBlocks) {
             return ZERO;
          }
          return WORK;
@@ -60,48 +105,40 @@ middle = (function () {
       $spaceBox = jqueryMap.$field.find('spaceBox');
       var margineCssAuto = $spaceBox.css('margin-left');
       var widthCss = $spaceBox.css('width');
-      var i, j;
+      var x, y;
 
       jqueryMap.$field.css({
          'width' : fullSmallBoxSize*(width+qBlocks),
          'height' : fullSmallBoxSize*(height+qBlocks)
       });
 
-      for (i = 0; i < height+qBlocks; i++) {
-         field[i] = new Array();
-         for (j = 0; j < width+qBlocks; j++) {
-            if (getCellType(i, j) > ZERO) {
-               cellConf.i = i;
-               cellConf.j = j;
-               field[i][j] = new Cell(cellConf);
+      for (y = 0; y < height+qBlocks; y++) {
+         field[y] = new Array();
+         for (x = 0; x < width+qBlocks; x++) {
+            if (getCellType(x, y) > ZERO) {
+               field[y][x] = new Cell(x, y);
             }
          }
       }
    }
  
    //Коструктор ячейки поля
-   var Cell = function (options) {
-      var 
-         iCell = options.i,
-         jCell = options.j,
-         iInc, jInc,
-         stringBoxsSize,
-         i, j;
+   var Cell = function (xCell, yCell) {
+      var type, x, y, fieldLength, inputLength;
 
       this.$cell = {};
       this.number = null;
-      this.type;
 
       this.workCell = function () {
-         if (this.type == FREE) {
+         if (type == FREE) {
             jqueryMap.$field.toggleClass('.work');
-            this.type = WORK;
+            type = WORK;
          }
       }
       this.freeCell = function () {
-         if (this.type == WORK) {
+         if (type == WORK) {
             jqueryMap.$field.toggleClass('.freecell');
-            this.type = FREE;
+            type = FREE;
          }
       }
 
@@ -119,9 +156,12 @@ middle = (function () {
       }
 
       //Вычисление индекса в зависимости от направления и текущего индекса
-      var getInd = function(cellInd) {
-         i = iCell*jInc + cellInd*iInc;
-         j = jCell*iInc + cellInd*jInc;
+      var getThisInd = function(ind) {
+         ind = getInd(xCell, yCell, ind);
+         x = ind.x;
+         y = ind.y;
+         fieldLength = ind.fieldLength;
+         inputLength = ind.inputLength;
       }
 
       //Перехват окончания ввода числа
@@ -131,25 +171,25 @@ middle = (function () {
 
       //Проверка суммы уже введенных чисел в ячейки с новым числом
       var checkSumLength = function (num) {
-         var sum = num+1, cellInd;
+         var sum = num+1, indCell, ind;
          
          //Число должно быть больше нуля
          if (!(num > 0)) return null;
 
          //Суммирование данной строки чисел
-         for (cellInd = 0; cellInd < configMap.qBlocks; cellInd++) {
-            getInd(cellInd);
+         for (indCell = 0; indCell < configMap.qBlocks; indCell++) {
+            getThisInd(indCell);
 
-            if (i != iCell || j != jCell) {
-               sum += field[i][j].number;
-               if (field[i][j].number > 0) {
+            if (y != yCell || x != xCell) {
+               sum += field[y][x].number;
+               if (field[y][x].number > 0) {
                   sum++;
                }
             }
          }
 
          //Если сумма в строке + мин. отступы превышает длину строки = null
-         if (!((sum - 1) <= stringBoxsSize)) {
+         if (!((sum - 1) <= fieldLength)) {
             return null;
          }
 
@@ -158,24 +198,23 @@ middle = (function () {
 
       //Удаление пустых клеток
       var defrag = function () {
-         var thisCell, freeCellInd;
-         for (freeCellInd = configMap.qBlocks - 1; freeCellInd > 0; freeCellInd--) {
+         var thisCell, freeInd, fullInd, ind;
+         for (freeInd = configMap.qBlocks - 1; freeInd > 0; freeInd--) {
             
-            getInd(freeCellInd);
-            thisCell = field[i][j].number;
+            getThisInd(freeInd); //подсчет x, y индексов
+            thisCell = field[y][x].number;
             if (!(thisCell > 0)) {
-               for (cellInd = freeCellInd - 1; cellInd >= 0; cellInd --) {
+               for (fullInd = freeInd - 1; fullInd >= 0; fullInd --) {
                   
-                  getInd(cellInd);
-                  thisCell = field[i][j].number;
+                  getThisInd(fullInd);
+                  thisCell = field[y][x].number;
                   if (thisCell > 0) {
                      
-                     field[i][j].setNum(null, false);
-                     getInd(freeCellInd);
-                     field[i][j].setNum(thisCell, false);
-                     freeCellInd = cellInd + 1;
+                     field[y][x].setNum(null, false);
+                     getThisInd(freeInd);
+                     field[y][x].setNum(thisCell, false);
+                     freeInd = fullInd + 1;
                      break;
-                  
                   }
                }
             }
@@ -183,8 +222,8 @@ middle = (function () {
       }
 
       //Инициализация ячейки
-      this.type = getCellType(iCell, jCell);
-      switch (this.type) {
+      type = getCellType(xCell, yCell);
+      switch (type) {
          case TOP:
          case LEFT:
             this.$cell = $('<input>', {
@@ -192,18 +231,6 @@ middle = (function () {
                text  : ""
             });
             this.$cell.focusout(this, handleFocus);
-            switch (this.type) {
-               case TOP: 
-                  iInc = 1;
-                  jInc = 0;
-                  stringBoxsSize = configMap.width;
-               break;
-               case LEFT:
-                  iInc = 0;
-                  jInc = 1;
-                  stringBoxsSize = configMap.height;
-               break;
-            }
          break;
          case WORK:
             this.$cell = $('<div>', {
@@ -211,7 +238,9 @@ middle = (function () {
             });
          break;
       };
-      this.$cell.appendTo( jqueryMap.$field );
+      if (type != ZERO) {
+         this.$cell.appendTo( jqueryMap.$field );
+      }
    }
 
    var setJqueryMap = function () {
