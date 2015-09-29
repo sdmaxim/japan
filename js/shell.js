@@ -26,7 +26,7 @@ shell = (function () {
 	var buttonHandler = function (event, msg_map){		
 		switch (msg_map.action) {
 			case 'setField'	: middle.initField(msg_map.data); break;
-			case 'solve'	: break;
+			case 'solve'	: middle.fillString(5,0);
 			case 'getData'	: break;
 			case 'setData'	: break;
 			case 'clear'	: break;

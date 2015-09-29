@@ -53,16 +53,38 @@ middle = (function () {
 
    }
 
-   var fillString = function (x, y) {
-      var ind, fieldLength, inputLength, inputInd, fieldInd;
-      x = x + (!(!(x))+0)*configMap.qBlocks;
-      y = y + (!(!(y))+0)*configMap.qBlocks;
-      ind = getInd(x, y);
-      fieldLength = ind.fieldLength;
-      inputLength = ind.inputLength;
+   var fillString = function (lineX, lineY) {
+      var ind, x, y, fieldLength, inputLength, inputInd, fieldInd = 0, pieceInd, pieceLen;
+      //X или Y должен быть равен 0, оба не могут быть равны и меньше нуля
+      if (lineX > 0 && lineY > 0) return false;
+      if (lineX < 0 || lineY < 0) return false;
+      if (lineX == 0 && lineY == 0) return false;
+      if (lineX < configMap.qBlocks && lineY < configMap.qBlocks) return false;
 
-      /*for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd++) {
-      }*/
+      //ind = getInd(x, y, 0);
+      //lineX = lineX + (!(lineX)+0)*configMap.qBlocks;
+      //lineY = lineY + (!(lineY)+0)*configMap.qBlocks;
+      
+      fieldLength = (!(!(lineY))+0)*configMap.width + (!(!(lineX))+0)*configMap.height;
+      //inputLength = ind.inputLength;
+      for (inputInd = 0; inputInd < configMap.qBlocks; inputInd++) {
+         x = lineX + (!(lineX)+0)*(inputInd);
+         y = lineY + (!(lineY)+0)*(inputInd);
+         pieceLen = field[y][x].number;
+         for (pieceInd = pieceLen; pieceInd > 0; pieceInd--) {
+            x = lineX + (!(lineX)+0)*(configMap.qBlocks + fieldInd);
+            y = lineY + (!(lineY)+0)*(configMap.qBlocks + fieldInd);
+
+            field[y][x].workCell();
+            fieldInd++;
+         }
+         if (pieceLen > 0 && fieldInd < fieldLength) {
+            x = lineX + (!(lineX)+0)*(configMap.qBlocks + fieldInd);
+            y = lineY + (!(lineY)+0)*(configMap.qBlocks + fieldInd);
+            field[y][x].freeCell();
+            fieldInd++;
+         }
+      }
    }
 
    var linearSeach = function (x, y) {
@@ -124,8 +146,6 @@ middle = (function () {
             }
          }
       }
-
-      fillString(5, 0);
    }
  
    //Коструктор ячейки поля
@@ -136,16 +156,16 @@ middle = (function () {
       this.number = null;
 
       this.workCell = function () {
-         if (type == FREE) {
-            jqueryMap.$field.toggleClass('.work');
+         //if (type == FREE) {
+            this.$cell.toggleClass('work');
             type = WORK;
-         }
+         //}
       }
       this.freeCell = function () {
-         if (type == WORK) {
-            jqueryMap.$field.toggleClass('.freecell');
+         //if (type == WORK) {
+            this.$cell.toggleClass('freecell');
             type = FREE;
-         }
+         //}
       }
 
       //Установка числа в ячейку
@@ -240,7 +260,7 @@ middle = (function () {
          break;
          case WORK:
             this.$cell = $('<div>', {
-               class : "freecell"
+               class : "work"
             });
          break;
       };
@@ -269,6 +289,7 @@ middle = (function () {
 
    return {
       initModule  : initModule,
-      initField   : initField
+      initField   : initField,
+      fillString  : fillString
    }
 }());
