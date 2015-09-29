@@ -45,7 +45,7 @@ middle = (function () {
          x : x,
          y : y,
          fieldLength : fieldLength,
-         inputLength : inputLength         
+         inputLength : inputLength
       }
    }
 
@@ -55,10 +55,14 @@ middle = (function () {
 
    var fillString = function (x, y) {
       var ind, fieldLength, inputLength, inputInd, fieldInd;
-      //ind = getInd()
-      for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd++) {
+      x = x + (!(!(x))+0)*configMap.qBlocks;
+      y = y + (!(!(y))+0)*configMap.qBlocks;
+      ind = getInd(x, y);
+      fieldLength = ind.fieldLength;
+      inputLength = ind.inputLength;
 
-      }
+      /*for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd++) {
+      }*/
    }
 
    var linearSeach = function (x, y) {
@@ -120,6 +124,8 @@ middle = (function () {
             }
          }
       }
+
+      fillString(5, 0);
    }
  
    //Коструктор ячейки поля
