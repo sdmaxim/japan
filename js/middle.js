@@ -54,35 +54,48 @@ middle = (function () {
    }
 
    var fillString = function (lineX, lineY) {
-      var ind, x, y, fieldLength, inputLength, inputInd, fieldInd = 0, pieceInd, pieceLen;
+      var ind, x, y, fieldLength, inputLength, inputInd, fieldInd = 0, pieceInd, pieceLen, freeFlag = true;
+
+      var setCell = function (cellType, ind) {
+         if (!(cellType == "line")) {
+            ind = configMap.qBlocks + ind;
+            fieldInd++;
+         }
+
+         x = lineX + (!(lineX)+0)*(ind);
+         y = lineY + (!(lineY)+0)*(ind);
+
+         switch (cellType) {
+            case "work" : field[y][x].workCell(); break;
+            case "free" : field[y][x].freeCell(); break;
+            case "line" : pieceLen = field[y][x].number; break;
+         }
+      }
+
       //X или Y должен быть равен 0, оба не могут быть равны и меньше нуля
       if (lineX > 0 && lineY > 0) return false;
       if (lineX < 0 || lineY < 0) return false;
       if (lineX == 0 && lineY == 0) return false;
       if (lineX < configMap.qBlocks && lineY < configMap.qBlocks) return false;
-
-      //ind = getInd(x, y, 0);
-      //lineX = lineX + (!(lineX)+0)*configMap.qBlocks;
-      //lineY = lineY + (!(lineY)+0)*configMap.qBlocks;
       
       fieldLength = (!(!(lineY))+0)*configMap.width + (!(!(lineX))+0)*configMap.height;
-      //inputLength = ind.inputLength;
-      for (inputInd = 0; inputInd < configMap.qBlocks; inputInd++) {
-         x = lineX + (!(lineX)+0)*(inputInd);
-         y = lineY + (!(lineY)+0)*(inputInd);
-         pieceLen = field[y][x].number;
-         for (pieceInd = pieceLen; pieceInd > 0; pieceInd--) {
-            x = lineX + (!(lineX)+0)*(configMap.qBlocks + fieldInd);
-            y = lineY + (!(lineY)+0)*(configMap.qBlocks + fieldInd);
 
-            field[y][x].workCell();
-            fieldInd++;
+      for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd--) {
+         setCell("line", inputInd);
+         if (!(pieceLen > 0)) {
+            freeFlag = false;
+            break;
+         }
+         for (pieceInd = pieceLen; pieceInd > 0; pieceInd--) {
+            setCell("work", fieldInd);
          }
          if (pieceLen > 0 && fieldInd < fieldLength) {
-            x = lineX + (!(lineX)+0)*(configMap.qBlocks + fieldInd);
-            y = lineY + (!(lineY)+0)*(configMap.qBlocks + fieldInd);
-            field[y][x].freeCell();
-            fieldInd++;
+            setCell("free", fieldInd);
+         }
+      }
+      if (!freeFlag) {
+         while (fieldInd < fieldLength) {
+            setCell("free", fieldInd);
          }
       }
    }
@@ -156,16 +169,16 @@ middle = (function () {
       this.number = null;
 
       this.workCell = function () {
-         //if (type == FREE) {
+         if (type == FREE) {
             this.$cell.toggleClass('work');
             type = WORK;
-         //}
+         }
       }
       this.freeCell = function () {
-         //if (type == WORK) {
+         if (type == WORK) {
             this.$cell.toggleClass('freecell');
             type = FREE;
-         //}
+         }
       }
 
       //Установка числа в ячейку
