@@ -99,6 +99,32 @@ middle = (function () {
          }
       }
    }
+   12345
+   x x
+
+   12345
+   x x 
+   x  x  
+   x   x
+    x x
+    x  x
+     x x
+
+   1234
+   xx
+   x x
+   x  x
+    xx
+    x x
+     xx
+   000--
+   001
+   010
+   011
+   100--
+   101
+   110
+   111--
 
    var linearSeach = function (x, y) {
 
@@ -167,17 +193,21 @@ middle = (function () {
 
       this.$cell = {};
       this.number = null;
+      this.numA = null;
+      this.numB = null;
 
       this.workCell = function () {
          if (type == FREE) {
             this.$cell.toggleClass('work');
             type = WORK;
+            this.number = 1;
          }
       }
       this.freeCell = function () {
          if (type == WORK) {
             this.$cell.toggleClass('freecell');
             type = FREE;
+            this.number = 0;
          }
       }
 
