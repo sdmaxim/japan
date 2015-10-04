@@ -10,7 +10,12 @@ middle = (function () {
    },
    field = new Array(),
    stateMap = {
-		$container : {}
+		$container : {},
+      sMass : new Array(), //Места нахождения блоков
+      bMass : new Array(), //Величины блоков
+      pMass : new Array(), //Найденные блоки
+      sField : new Array(),
+      nVar : 0
 	},
 	jqueryMap = {
 		$field : {},
@@ -49,8 +54,66 @@ middle = (function () {
       }
    }
 
-   var getStringMask = function (x, y) {
+   //Количество блоков и свободных клеток (длина перебора) в строке
+   var getQuanBlocksFreeCells = function (lineX, lineY) {
+      var inputInd, blocks = 0, freeCells = 0, pieceLen, fieldLength;
+      //Вычислаем реальный номер строки
+      lineX = lineX + (!(!(lineX))+0)*(configMap.qBlocks-1);
+      lineY = lineY + (!(!(lineY))+0)*(configMap.qBlocks-1);
+      for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd--) {
+         x = lineX + (!(lineX)+0)*inputInd;
+         y = lineY + (!(lineY)+0)*inputInd;
+         pieceLen = field[y][x].number;
+         if (pieceLen > 0) {
+            stateMap.bMass[blocks] = pieceLen;
+            stateMap.sMass[blocks] = 0;
+            console.log(pieceLen + " ");
+            freeCells += pieceLen;
+            blocks++;
+         } else {
+            break;
+         }
+      }
+      fieldLength = (!(!(lineX))+0)*configMap.height + (!(!(lineY))+0)*configMap.width;
+      freeCells -= 1; //Сумма лишней длины блоков с пробелами, послед. пробел не учит
+      freeCells = fieldLength - freeCells; // Длина строки без лишнего
+      freeCells -= blocks - 1; //Кол-во свобод. клеток для каждого блока
+      return {
+         blocks : blocks,
+         freeCells : freeCells
+      }
+   }
 
+   var showBlock = function (length, type) {
+      var s = "", symbol;
+      switch (type) {
+         case "block" : symbol = "1"; break;
+         case "free" : symbol = "0"; break;
+      }
+      for (i = 0; i < length; i++) {
+         s += symbol;
+      }
+      return s;
+   }
+
+   //Перебор вариантов
+   var goSearch = function (lineX, lineY, nBlock, freeCells) {
+      if (nBlock < 0) return;
+      if (freeCells < 0) return;
+      stateMap.sMass[nBlock] = 0;
+      while (stateMap.sMass[nBlock] < freeCells) {
+         goSearch(lineX, lineY, nBlock-1, freeCells - stateMap.sMass[nBlock]);
+         if (nBlock == 0) {
+            //Вариант сформирован, можно использовать
+            stateMap.nVar++;
+            console.log(stateMap.nVar + " : " + 
+               showBlock(stateMap.sMass[0], "free") + showBlock(stateMap.bMass[0], "block") + "|" +
+               showBlock(stateMap.sMass[1], "free") + showBlock(stateMap.bMass[1], "block") + "|" +
+               showBlock(stateMap.sMass[2], "free") + showBlock(stateMap.bMass[2], "block"));
+         }
+         stateMap.sMass[nBlock]++;
+      }
+      return;
    }
 
    var fillString = function (lineX, lineY) {
@@ -99,32 +162,6 @@ middle = (function () {
          }
       }
    }
-   12345
-   x x
-
-   12345
-   x x 
-   x  x  
-   x   x
-    x x
-    x  x
-     x x
-
-   1234
-   xx
-   x x
-   x  x
-    xx
-    x x
-     xx
-   000--
-   001
-   010
-   011
-   100--
-   101
-   110
-   111--
 
    var linearSeach = function (x, y) {
 
@@ -333,6 +370,8 @@ middle = (function () {
    return {
       initModule  : initModule,
       initField   : initField,
-      fillString  : fillString
+      fillString  : fillString,
+      getQuanBlocksFreeCells : getQuanBlocksFreeCells,
+      goSearch : goSearch
    }
 }());

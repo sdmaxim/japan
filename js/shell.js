@@ -8,7 +8,8 @@ shell = (function () {
 				'<div id="middle"></div>'
 		},
 		stateMap = {
-			$container : {}
+			$container : {},
+			quan : 0
 		},
 		jqueryMap = {
 			$left : {}
@@ -26,7 +27,13 @@ shell = (function () {
 	var buttonHandler = function (event, msg_map){		
 		switch (msg_map.action) {
 			case 'setField'	: middle.initField(msg_map.data); break;
-			case 'solve'	: middle.fillString(5,0);
+			case 'solve'	: 
+			middle.getQuanBlocksFreeCells(1,0);
+			middle.goSearch(0,0,2,3); //2 = 3
+			//stateMap.quan = middle.getQuanInputs(1,0); 
+			//middle.fillString(5,0);
+			break;
+			
 			case 'getData'	: break;
 			case 'setData'	: break;
 			case 'clear'	: break;
