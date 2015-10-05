@@ -11,10 +11,11 @@ middle = (function () {
    field = new Array(),
    stateMap = {
 		$container : {},
-      sMass : new Array(), //Места нахождения блоков
-      bMass : new Array(), //Величины блоков
-      pMass : new Array(), //Найденные блоки
-      sField : new Array(),
+      sMass : new Array(), //Места нахождения блоков в примитивном переборе, ххх, хх х, х хх, х х х
+      lBloks : new Array(), //Размеры блоков, 1 3 2 5
+      pMass : new Array(), //Найденные блоки, 1000010001010011110, по длине строки/столбца
+      nBlocks : 0, //Кол-во блоков в строке
+      fieldLength : 0, //Длина строки
       nVar : 0
 	},
 	jqueryMap = {
@@ -22,8 +23,95 @@ middle = (function () {
       $header : {}
 	},
    //Типы ячеек
-   ZERO = 0, TOP = 1, LEFT = 2, WORK = 3, FREE = 4,
+   ZERO = 0, //Левый верх. квадрат
+   TOP = 1, //Верхние инпуты
+   LEFT = 2, //Левые инпуты
+   FREE = 3, //Свободные ячейки на поле
+   BLOCK = 4, //Точно занятые
+   SPACE = 5 //Точно пустые
    margineCss = 2;
+
+   var getFieldLength = function(lineX, lineY) {
+      stateMap.fieldLength = (!(!(lineX))+0)*configMap.height + (!(!(lineY))+0)*configMap.width;
+   }
+
+   //Количество блоков (blocks) и свободных клеток в строке, первоначальная длина перебора (freeCells)
+   var getQuanBlocksFreeCells = function (lineX, lineY) {
+      var inputInd, blocks = 0, freeCells = 0, pieceLen;
+      //Вычислаем реальный номер строки
+      lineX = lineX + (!(!(lineX))+0)*(configMap.qBlocks-1);
+      lineY = lineY + (!(!(lineY))+0)*(configMap.qBlocks-1);
+      for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd--) {
+         x = lineX + (!(lineX)+0)*inputInd;
+         y = lineY + (!(lineY)+0)*inputInd;
+         pieceLen = field[y][x].number;
+         if (pieceLen > 0) {
+            stateMap.lBloks[blocks] = pieceLen;
+            stateMap.sMass[blocks] = 0;
+            freeCells += pieceLen;
+            blocks++;
+         } else {
+            break;
+         }
+      }
+      
+      //Общая длина строки
+      getFieldLength(lineX, lineY);
+
+      freeCells -= 1; //Сумма лишней длины блоков с пробелами, послед. пробел не учит
+      freeCells = stateMap.fieldLength - freeCells; // Длина строки без лишнего
+      freeCells -= blocks - 1; //Кол-во свобод. клеток для каждого блока
+
+      stateMap.nBlocks = blocks;
+      stateMap.freeCells = freeCells;
+
+      goSearch(blocks-1, freeCells);
+   }
+
+   //Создание блока пустых или полных ячеек
+   var makeVarLine = function () {
+      var resLine = new Array();
+      var i, s = ":", 
+      nB, //Счетчик номера блока
+      lB; //Счетчик длины блока
+
+      //Инициализируем результир массив
+      for (i = 0; i < stateMap.fieldLength; i++) {
+         resLine[i] = " ";
+      }
+
+      //Наполняем массив блоками
+      i = 0;
+      for (nB = 0; nB < stateMap.nBlocks; nB++) {
+         i += stateMap.sMass[nB];
+         for (lB = 0; lB < stateMap.lBloks[nB]; lB++) {
+            resLine[i] = "x";
+            i++;
+         }
+      }
+
+      for (i = 0; i < stateMap.fieldLength; i++) {
+         s += resLine[i];
+      }
+      console.log(s);
+   }
+
+   //Перебор примитивных вариантов
+   var goSearch = function (nBlock, freeCells) {
+      if (nBlock < 0) return;
+      if (freeCells < 0) return;
+      stateMap.sMass[nBlock] = 0;
+      while (stateMap.sMass[nBlock] < freeCells) {
+         goSearch(nBlock-1, freeCells - stateMap.sMass[nBlock]);
+         if (nBlock == 0) {
+            //Вариант сформирован, можно использовать
+            stateMap.nVar++;
+            makeVarLine();
+         }
+         stateMap.sMass[nBlock]++;
+      }
+      return;
+   }
 
    //Вычисление индекса в зависимости от направления и текущего индекса
    var getInd = function(xCell, yCell, ind) {
@@ -54,68 +142,7 @@ middle = (function () {
       }
    }
 
-   //Количество блоков и свободных клеток (длина перебора) в строке
-   var getQuanBlocksFreeCells = function (lineX, lineY) {
-      var inputInd, blocks = 0, freeCells = 0, pieceLen, fieldLength;
-      //Вычислаем реальный номер строки
-      lineX = lineX + (!(!(lineX))+0)*(configMap.qBlocks-1);
-      lineY = lineY + (!(!(lineY))+0)*(configMap.qBlocks-1);
-      for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd--) {
-         x = lineX + (!(lineX)+0)*inputInd;
-         y = lineY + (!(lineY)+0)*inputInd;
-         pieceLen = field[y][x].number;
-         if (pieceLen > 0) {
-            stateMap.bMass[blocks] = pieceLen;
-            stateMap.sMass[blocks] = 0;
-            console.log(pieceLen + " ");
-            freeCells += pieceLen;
-            blocks++;
-         } else {
-            break;
-         }
-      }
-      fieldLength = (!(!(lineX))+0)*configMap.height + (!(!(lineY))+0)*configMap.width;
-      freeCells -= 1; //Сумма лишней длины блоков с пробелами, послед. пробел не учит
-      freeCells = fieldLength - freeCells; // Длина строки без лишнего
-      freeCells -= blocks - 1; //Кол-во свобод. клеток для каждого блока
-      return {
-         blocks : blocks,
-         freeCells : freeCells
-      }
-   }
-
-   var showBlock = function (length, type) {
-      var s = "", symbol;
-      switch (type) {
-         case "block" : symbol = "1"; break;
-         case "free" : symbol = "0"; break;
-      }
-      for (i = 0; i < length; i++) {
-         s += symbol;
-      }
-      return s;
-   }
-
-   //Перебор вариантов
-   var goSearch = function (lineX, lineY, nBlock, freeCells) {
-      if (nBlock < 0) return;
-      if (freeCells < 0) return;
-      stateMap.sMass[nBlock] = 0;
-      while (stateMap.sMass[nBlock] < freeCells) {
-         goSearch(lineX, lineY, nBlock-1, freeCells - stateMap.sMass[nBlock]);
-         if (nBlock == 0) {
-            //Вариант сформирован, можно использовать
-            stateMap.nVar++;
-            console.log(stateMap.nVar + " : " + 
-               showBlock(stateMap.sMass[0], "free") + showBlock(stateMap.bMass[0], "block") + "|" +
-               showBlock(stateMap.sMass[1], "free") + showBlock(stateMap.bMass[1], "block") + "|" +
-               showBlock(stateMap.sMass[2], "free") + showBlock(stateMap.bMass[2], "block"));
-         }
-         stateMap.sMass[nBlock]++;
-      }
-      return;
-   }
-
+   //Заполнение рабочего поля в зависимости от инпутов
    var fillString = function (lineX, lineY) {
       var ind, x, y, fieldLength, inputLength, inputInd, fieldInd = 0, pieceInd, pieceLen, freeFlag = true;
 
@@ -129,7 +156,7 @@ middle = (function () {
          y = lineY + (!(lineY)+0)*(ind);
 
          switch (cellType) {
-            case "work" : field[y][x].workCell(); break;
+            case "work" : field[y][x].blockCell(); break;
             case "free" : field[y][x].freeCell(); break;
             case "line" : pieceLen = field[y][x].number; break;
          }
@@ -163,10 +190,7 @@ middle = (function () {
       }
    }
 
-   var linearSeach = function (x, y) {
-
-   }
-
+   //Тип ячейки в зависимости от ее координат
    var getCellType = function (xCell, yCell) {
       if (yCell < configMap.qBlocks && xCell >= configMap.qBlocks) {
          return TOP;
@@ -178,9 +202,9 @@ middle = (function () {
          if (yCell < configMap.qBlocks && xCell < configMap.qBlocks) {
             return ZERO;
          }
-         return WORK;
+         return FREE;
       }
-      return false; 
+      return false;
    }
 
    var initField = function (options) {
@@ -230,19 +254,29 @@ middle = (function () {
 
       this.$cell = {};
       this.number = null;
-      this.numA = null;
-      this.numB = null;
 
-      this.workCell = function () {
+      this.setCell = function (tp) {
+         var className = '';
+         if (tp >= FREE) {
+            switch(tp) {
+               case FREE : className = 'free'; break;
+               case BLOCK : className = 'work'; break;
+               case SPACE : className = 'space'; break;
+            }
+            this.type = tp;
+         }
+         
+      }
+      this.blockCell = function () {
          if (type == FREE) {
             this.$cell.toggleClass('work');
-            type = WORK;
+            type = BLOCK;
             this.number = 1;
          }
       }
       this.freeCell = function () {
-         if (type == WORK) {
-            this.$cell.toggleClass('freecell');
+         if (type == BLOCK) {
+            this.$cell.toggleClass('free');
             type = FREE;
             this.number = 0;
          }
@@ -338,9 +372,9 @@ middle = (function () {
             });
             this.$cell.focusout(this, handleFocus);
          break;
-         case WORK:
+         case FREE:
             this.$cell = $('<div>', {
-               class : "work"
+               class : "free"
             });
          break;
       };

@@ -106,7 +106,7 @@ div.left-management li.menuitem{
 	text-align: center;
 }
 
-#middle .work, #middle .freecell {
+#middle .work, #middle .free {
 	float: left;
 	background: #C55;
 	border: 1px solid #888;
@@ -115,6 +115,6 @@ div.left-management li.menuitem{
 	height: 25px;
 	box-sizing: border-box;
 }
-#middle .freecell {
+#middle .free {
 	background: #FBFFFB;
 }
