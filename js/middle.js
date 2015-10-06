@@ -15,7 +15,6 @@ middle = (function () {
       lengthBloks : new Array(), //Размеры блоков, 1 3 2 5
       tempPermanentLine : new Array(), //Временная строка с точно найденными ячейками
       qBlocks : 0, //Кол-во блоков в строке
-      stringLength : 0, //Длина строки
       nVar : 0
 	},
 	jqueryMap = {
@@ -37,31 +36,52 @@ middle = (function () {
    }
 
    var getFieldLength = function(lineX, lineY) {
-      stateMap.stringLength = (!(!(lineX))+0)*configMap.height + (!(!(lineY))+0)*configMap.width;
+      return ((!(!(lineX))+0)*configMap.height + (!(!(lineY))+0)*configMap.width);
    }
 
    var getInputLength = function() {
       return configMap.qBlocks;
    }
 
-   //Выдает значение ячейки
-   var getFieldNumber = function (lineX, lineY, ind, workWay) { //absPass - false поле с инпутами, true - только рабочее поле
+   var getTrueInd = function (lineX, lineY, ind, workWay) {
       var x, y;
-      if (workWay) {
+      //Расчет индекса поля
+      if (workWay == 'field') {
          lineX = lineX + (!(!(lineX))+0)*(configMap.qBlocks-1);
          lineY = lineY + (!(!(lineY))+0)*(configMap.qBlocks-1);
+      } else {
+      //Расчет индекса инпута
+         lineX = lineX * ((lineX >= configMap.qBlocks)+0);
+         lineY = lineY * ((lineY >= configMap.qBlocks)+0);
       }
       x = lineX + (!(lineX)+0)*ind;
       y = lineY + (!(lineY)+0)*ind;
-      return field[y][x].number;
+
+      return {
+         x : x,
+         y : y
+      }
+   }
+
+   //Выдает значение ячейки
+   var getFieldNumber = function (lineX, lineY, index, workWay) { //absPass - false поле с инпутами, true - только рабочее поле
+      var ind;
+      ind = getTrueInd(lineX, lineY, index, workWay);
+      return field[ind.y][ind.x].number;
+   }
+
+   var setFieldNumber = function (lineX, lineY, ind, workWay) { //absPass - false поле с инпутами, true - только рабочее поле
+      var ind;
+      ind = getTrueInd(lineX, lineY, index, workWay);
+      field[ind.y][ind.x].setNum(55);
    }
 
    //Количество блоков (blocks) и свободных клеток в строке, первоначальная длина перебора (freeCells)
    var getQuanBlocksFreeCells = function (lineX, lineY) {
-      var inputInd, blocks = 0, freeCells = 0, pieceLen, i;
+      var inputInd, blocks = 0, freeCells = 0, pieceLen, i, stringLength;
       //Вычислаем реальный номер строки
       for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd--) {
-         pieceLen = getFieldNumber(lineX, lineY, inputInd, true);
+         pieceLen = getFieldNumber(lineX, lineY, inputInd, 'field');
          if (pieceLen > 0) {
             stateMap.lengthBloks[blocks] = pieceLen;
             stateMap.blocksLocation[blocks] = 0;
@@ -73,16 +93,16 @@ middle = (function () {
       }
       
       //Общая длина строки
-      getFieldLength(lineX, lineY);
+      stringLength = getFieldLength(lineX, lineY);
 
       freeCells -= 1; //Сумма лишней длины блоков с пробелами, послед. пробел не учит
-      freeCells = stateMap.stringLength - freeCells; // Длина строки без лишнего
+      freeCells = stringLength - freeCells; // Длина строки без лишнего
       freeCells -= blocks - 1; //Кол-во свобод. клеток для каждого блока
 
       stateMap.qBlocks = blocks;
       stateMap.freeCells = freeCells;
 
-      for (i = 0; i < stateMap.stringLength; i++) {
+      for (i = 0; i < stringLength; i++) {
          stateMap.tempPermanentLine[i] = 1; //stateMap.permanentLine[i];
       }
       goSearch(blocks-1, freeCells);
@@ -152,35 +172,6 @@ middle = (function () {
       return;
    }
 
-   //Вычисление индекса в зависимости от направления и текущего индекса
-   var getInd = function(xCell, yCell, ind) {
-      var x, y, xInc, yInc, stringLength;
-      switch (getCellType(xCell, yCell)) {
-         case TOP: 
-            xInc = 0;
-            yInc = 1;
-            stringLength = configMap.width;
-         break;
-         case LEFT:
-            xInc = 1;
-            yInc = 0;
-            stringLength = configMap.height;
-         break;
-      }
-
-      inputLength = configMap.qBlocks;
-
-      x = xCell*yInc + ind*xInc;
-      y = yCell*xInc + ind*yInc;
-
-      return {
-         x : x,
-         y : y,
-         stringLength : stringLength,
-         inputLength : inputLength
-      }
-   }
-
    //Тип ячейки в зависимости от ее координат
    var getCellType = function (xCell, yCell) {
       if (yCell < configMap.qBlocks && xCell >= configMap.qBlocks) {
@@ -198,6 +189,117 @@ middle = (function () {
       return false;
    }
 
+   //Коструктор ячейки поля
+   var Cell = function (xCell, yCell) {
+      var x, y;
+      var stringLength = getFieldLength(xCell, yCell);
+      var inputLength = getInputLength();
+
+      this.type = getCellType(xCell, yCell);
+      this.$cell = {};
+      this.number = null;
+
+      //Перехват окончания ввода числа
+      var handleFocus = function(that) {
+         var num = Number($(this).val().replace(/\D+/g,""));
+         num = that.data.checkSumLength(num);
+         that.data.setNum(num);
+         that.data.defrag();
+      }
+
+      //Инициализация ячейки
+      switch (this.type) {
+         case TOP:
+         case LEFT:
+            this.$cell = $('<input>', {
+               class : "input",
+               text  : ""
+            });
+            this.$cell.focusout(this, handleFocus);
+         break;
+         case FREE:
+            this.$cell = $('<div>', {
+               class : "free"
+            });
+         break;
+      };
+      if (this.type != ZERO) {
+         this.$cell.appendTo( jqueryMap.$field );
+      }
+
+      //Установка числа в ячейку
+      this.setNum = function (num) {
+         var className;
+         if (this.type >= FREE) {
+            switch(num+FREE) {
+               case FREE : className = 'free'; break;
+               case BLOCK : className = 'work'; break;
+               case SPACE : className = 'space'; break;
+            }
+            if (className) {
+               this.$cell.toggleClass('free');
+               this.type = num+FREE;
+               this.number = num;
+            }
+         } else {
+            this.number = num;
+            this.$cell.val(num);
+         }
+      }
+
+      //Проверка суммы уже введенных чисел в ячейки с новым числом
+      this.checkSumLength = function (num) {
+         var sum = num+1, indCell, ind, stringLength;
+         
+         //Число должно быть больше нуля
+         if (!(num > 0)) return null;
+
+         ind = getTrueInd(xCell, yCell, 0);
+         stringLength = getFieldLength(ind.x, ind.y);
+
+         //Суммирование данной строки чисел
+         for (indCell = 0; indCell < configMap.qBlocks; indCell++) {
+            ind = getTrueInd(xCell, yCell, indCell);
+            if (ind.y != yCell || ind.x != xCell) {
+               sum += field[ind.y][ind.x].number;
+               if (field[ind.y][ind.x].number > 0) {
+                  sum++;
+               }
+            }
+         }
+
+         //Если сумма в строке + мин. отступы превышает длину строки = null
+         if (!((sum - 1) <= stringLength)) {
+            return null;
+         }
+         return num;
+      }
+
+      //Удаление пустых клеток в инпуте
+      this.defrag = function () {
+         var thisCell, freeInd, fullInd, ind;
+         for (freeInd = configMap.qBlocks - 1; freeInd > 0; freeInd--) {
+            if (!(getFieldNumber(xCell, yCell, freeInd) > 0)) {
+               for (fullInd = freeInd - 1; fullInd >= 0; fullInd --) {
+                  thisCell = getFieldNumber(xCell, yCell, fullInd);
+                  if (thisCell > 0) {
+
+                     ind = getTrueInd(xCell, yCell, fullInd);
+                     field[ind.y][ind.x].setNum(null);
+
+                     ind = getTrueInd(xCell, yCell, freeInd);
+                     field[ind.y][ind.x].setNum(thisCell);
+
+                     freeInd = fullInd + 1;
+                     break;
+                  }
+               }
+            }
+         }
+      }
+   }
+
+   //Инициализация поля с клетками
    var initField = function (options) {
       setConfigMap(options);
 
@@ -236,152 +338,6 @@ middle = (function () {
                field[y][x] = new Cell(x, y);
             }
          }
-      }
-   }
- 
-   //Коструктор ячейки поля
-   var Cell = function (xCell, yCell) {
-      var type, x, y;
-      var stringLength = getFieldLength(xCell, yCell);
-      var inputLength = getInputLength();
-
-      this.$cell = {};
-      this.number = null;
-
-      this.setCell = function (tp) {
-         var className = '';
-         if (tp >= FREE) {
-            switch(tp) {
-               case FREE : className = 'free'; break;
-               case BLOCK : className = 'work'; break;
-               case SPACE : className = 'space'; break;
-            }
-            this.type = tp;
-         }
-         
-      }
-      this.freeCell = function () {
-         if (type >= FREE) {
-            this.$cell.toggleClass('free');
-            type = FREE;
-            this.number = 0;
-         }
-      }
-      this.blockCell = function () {
-         if (type >= FREE) {
-            this.$cell.toggleClass('work');
-            type = BLOCK;
-            this.number = 1;
-         }
-      }
-      this.spaceCell = function () {
-         if (type >= FREE) {
-            this.$cell.toggleClass('space');
-            type = SPACE;
-            this.number = 2;
-         }
-      }
-
-      //Установка числа в ячейку
-      this.setNum = function (num, checkNum) {
-         if (checkNum) {
-            num = checkSumLength(num);
-         }
-            this.number = num;
-            this.$cell.val(num);
-
-         if (checkNum) {
-            defrag();
-         }
-      }
-
-      //Вычисление индекса в зависимости от направления и текущего индекса
-      var getThisInd = function(ind) {
-         ind = getInd(xCell, yCell, ind);
-         x = ind.x;
-         y = ind.y;
-         stringLength = ind.stringLength;
-         inputLength = ind.inputLength;
-      }
-
-      //Перехват окончания ввода числа
-      var handleFocus = function(that) {
-         that.data.setNum(Number($(this).val().replace(/\D+/g,"")), true);
-      }
-
-      //Проверка суммы уже введенных чисел в ячейки с новым числом
-      var checkSumLength = function (num) {
-         var sum = num+1, indCell, ind;
-         
-         //Число должно быть больше нуля
-         if (!(num > 0)) return null;
-
-         //Суммирование данной строки чисел
-         for (indCell = 0; indCell < configMap.qBlocks; indCell++) {
-            getThisInd(indCell);
-
-            if (y != yCell || x != xCell) {
-               sum += field[y][x].number;
-               if (field[y][x].number > 0) {
-                  sum++;
-               }
-            }
-         }
-
-         //Если сумма в строке + мин. отступы превышает длину строки = null
-         if (!((sum - 1) <= stringLength)) {
-            return null;
-         }
-
-         return num;
-      }
-
-      //Удаление пустых клеток
-      var defrag = function () {
-         var thisCell, freeInd, fullInd, ind;
-         for (freeInd = configMap.qBlocks - 1; freeInd > 0; freeInd--) {
-            
-            //getThisInd(freeInd); //подсчет x, y индексов
-            thisCell = getFieldNumber(xCell, yCell, freeInd);
-
-            //thisCell = field[y][x].number;
-            if (!(thisCell > 0)) {
-               for (fullInd = freeInd - 1; fullInd >= 0; fullInd --) {
-                  
-                  getThisInd(fullInd);
-                  thisCell = field[y][x].number;
-                  if (thisCell > 0) {
-                     
-                     field[y][x].setNum(null, false);
-                     getThisInd(freeInd);
-                     field[y][x].setNum(thisCell, false);
-                     freeInd = fullInd + 1;
-                     break;
-                  }
-               }
-            }
-         }
-      }
-
-      //Инициализация ячейки
-      type = getCellType(xCell, yCell);
-      switch (type) {
-         case TOP:
-         case LEFT:
-            this.$cell = $('<input>', {
-               class : "input",
-               text  : ""
-            });
-            this.$cell.focusout(this, handleFocus);
-         break;
-         case FREE:
-            this.$cell = $('<div>', {
-               class : "free"
-            });
-         break;
-      };
-      if (type != ZERO) {
-         this.$cell.appendTo( jqueryMap.$field );
       }
    }
 
