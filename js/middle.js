@@ -15,6 +15,7 @@ middle = (function () {
       lengthBloks : new Array(), //Размеры блоков, 1 3 2 5
       tempPermanentLine : new Array(), //Временная строка с точно найденными ячейками
       qBlocks : 0, //Кол-во блоков в строке
+      stringLength : 0, //Текущая длина строки
       nVar : 0
 	},
 	jqueryMap = {
@@ -36,7 +37,8 @@ middle = (function () {
    }
 
    var getFieldLength = function(lineX, lineY) {
-      return ((!(!(lineX))+0)*configMap.height + (!(!(lineY))+0)*configMap.width);
+      stateMap.stringLength = ((!(!(lineX))+0)*configMap.height + (!(!(lineY))+0)*configMap.width);
+      return stateMap.stringLength;
    }
 
    var getInputLength = function() {
