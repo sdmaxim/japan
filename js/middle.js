@@ -16,6 +16,7 @@ middle = (function () {
       tempPermanentLine : new Array(), //Временная строка с точно найденными ячейками
       qBlocks : 0, //Кол-во блоков в строке
       stringLength : 0, //Текущая длина строки
+      blocks : new Array(), //Инфа по блокам
       nVar : 0
 	},
 	jqueryMap = {
@@ -80,15 +81,19 @@ middle = (function () {
 
    //Количество блоков (blocks) и свободных клеток в строке, первоначальная длина перебора (freeCells)
    var getQuanBlocksFreeCells = function (lineX, lineY) {
-      var inputInd, blocks = 0, freeCells = 0, pieceLen, i, stringLength;
+      var inputInd, blockInd = 0, freeCells = 0, pieceLen, i, stringLength;
       //Вычислаем реальный номер строки
       for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd--) {
          pieceLen = getFieldNumber(lineX, lineY, inputInd, 'field');
          if (pieceLen > 0) {
-            stateMap.lengthBloks[blocks] = pieceLen;
-            stateMap.blocksLocation[blocks] = 0;
+            stateMap.blocks[blockInd] = {
+               lengthBloks : pieceLen,
+               blocksLocation : 0
+            }
+            /*stateMap.lengthBloks[blockInd] = pieceLen;
+            stateMap.blocksLocation[blockInd] = 0;*/
             freeCells += pieceLen;
-            blocks++;
+            blockInd++;
          } else {
             break;
          }
@@ -99,15 +104,15 @@ middle = (function () {
 
       freeCells -= 1; //Сумма лишней длины блоков с пробелами, послед. пробел не учит
       freeCells = stringLength - freeCells; // Длина строки без лишнего
-      freeCells -= blocks - 1; //Кол-во свобод. клеток для каждого блока
+      freeCells -= blockInd - 1; //Кол-во свобод. клеток для каждого блока
 
-      stateMap.qBlocks = blocks;
+      stateMap.qBlocks = blockInd;
       stateMap.freeCells = freeCells;
 
       for (i = 0; i < stringLength; i++) {
          stateMap.tempPermanentLine[i] = 1; //stateMap.permanentLine[i];
       }
-      goSearch(blocks-1, freeCells);
+      goSearch(blockInd-1, freeCells);
    }
 
    //Создание блока пустых или полных ячеек
@@ -125,8 +130,13 @@ middle = (function () {
       //Наполняем массив блоками
       i = 0;
       for (nB = 0; nB < stateMap.qBlocks; nB++) {
-         i += stateMap.blocksLocation[nB];
-         for (lB = 0; lB < stateMap.lengthBloks[nB]; lB++) {
+         /*            stateMap.blocks[blockInd] = {
+               lengthBloks : pieceLen,
+               blocksLocation : 0
+            }*/
+         i += stateMap.blocks[nB].blocksLocation;
+         //i += stateMap.blocksLocation[nB];
+         for (lB = 0; lB < stateMap.blocks[nB].lengthBloks; /*stateMap.lengthBloks[nB];*/ lB++) {
             variantLine[i] = 1;
             i++;
          }
@@ -161,15 +171,17 @@ middle = (function () {
    var goSearch = function (nBlock, freeCells) {
       if (nBlock < 0) return;
       if (freeCells < 0) return;
-      stateMap.blocksLocation[nBlock] = 0;
-      while (stateMap.blocksLocation[nBlock] < freeCells) {
-         goSearch(nBlock-1, freeCells - stateMap.blocksLocation[nBlock]);
+      stateMap.blocks[nBlock].blocksLocation = 0;
+      //stateMap.blocksLocation[nBlock] = 0;
+      while (stateMap.blocks[nBlock].blocksLocation/*stateMap.blocksLocation[nBlock]*/ < freeCells) {
+         goSearch(nBlock-1, freeCells - stateMap.blocks[nBlock].blocksLocation/*stateMap.blocksLocation[nBlock]*/);
          if (nBlock == 0) {
             //Вариант сформирован, можно использовать
             stateMap.nVar++;
             makeVarLine();
          }
-         stateMap.blocksLocation[nBlock]++;
+         stateMap.blocks[nBlock].blocksLocation++;
+         //stateMap.blocksLocation[nBlock]++;
       }
       return;
    }
