@@ -34,8 +34,8 @@ middle = (function () {
       var x, y;
 
       if (workWay == 'fromLineInd') { //Знаю lineInd
-         x = ((ind <  configMap.width) + 0) * (ind + 1);
-         y = ((ind >= configMap.width) + 0) * (ind - configMap.width + 1);
+         x = ((ind <  configMap.width) + 0) * (ind + configMap.qBlocks);
+         y = ((ind >= configMap.width) + 0) * (ind - configMap.width + configMap.qBlocks);
       } else {
          //Расчет индекса поля
          if (workWay == 'field') {
@@ -192,12 +192,12 @@ middle = (function () {
          //Число должно быть больше нуля
          if (!(num > 0)) return null;
 
-         ind = getTrueInd(xCell, yCell, 0, 'field');
+         ind = getTrueInd(xCell, yCell, 0);
          stringLength = getFieldLength(ind.x, ind.y);
 
          //Суммирование данной строки чисел
          for (indCell = 0; indCell < configMap.qBlocks; indCell++) {
-            ind = getTrueInd(xCell, yCell, indCell, 'field');
+            ind = getTrueInd(xCell, yCell, indCell);
             if (ind.y != yCell || ind.x != xCell) {
                sum += field[ind.y][ind.x].number;
                if (field[ind.y][ind.x].number > 0) {
@@ -222,10 +222,10 @@ middle = (function () {
                   thisCell = getCellNumber(xCell, yCell, fullInd);
                   if (thisCell > 0) {
 
-                     ind = getTrueInd(xCell, yCell, fullInd, 'field');
+                     ind = getTrueInd(xCell, yCell, fullInd);
                      field[ind.y][ind.x].setNum(null);
 
-                     ind = getTrueInd(xCell, yCell, freeInd, 'field');
+                     ind = getTrueInd(xCell, yCell, freeInd);
                      field[ind.y][ind.x].setNum(thisCell);
 
                      freeInd = fullInd + 1;
