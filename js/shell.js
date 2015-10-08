@@ -24,11 +24,12 @@ shell = (function () {
 		var hash = getHash();
 	};
 
-	var buttonHandler = function (event, msg_map){		
+	var buttonHandler = function (event, msg_map){	
+		var line1 = 0;	
 		switch (msg_map.action) {
 			case 'setField'	: middle.initField(msg_map.data); break;
 			case 'solve'	: 
-			middle.getQuanBlocksFreeCells(1,0);
+			lines[0].getQuanBlocksFreeCells();
 			//stateMap.quan = middle.getQuanInputs(1,0); 
 			//middle.fillString(5,0);
 			break;

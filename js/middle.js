@@ -9,15 +9,9 @@ middle = (function () {
       qBlocks : 0
    },
    field = new Array(),
+   lines = new Array(),
    stateMap = {
 		$container : {},
-      blocksLocation : new Array(), //Места нахождения блоков в примитивном переборе, ххх, хх х, х хх, х х х
-      lengthBloks : new Array(), //Размеры блоков, 1 3 2 5
-      tempPermanentLine : new Array(), //Временная строка с точно найденными ячейками
-      qBlocks : 0, //Кол-во блоков в строке
-      stringLength : 0, //Текущая длина строки
-      blocks : new Array(), //Инфа по блокам
-      nVar : 0
 	},
 	jqueryMap = {
 		$field : {},
@@ -32,33 +26,36 @@ middle = (function () {
    SPACE = 5 //Точно пустые
    margineCss = 2;
 
-   //Установить точно найденное значение ячейки
-   var setPermanentCell = function(lineX, lineY, ind, type) {
-
+   var getFieldLength = function(xCell, yCell) {
+      return ((!(!(xCell))+0)*configMap.height + (!(!(yCell))+0)*configMap.width);
    }
 
-   var getFieldLength = function(lineX, lineY) {
-      stateMap.stringLength = ((!(!(lineX))+0)*configMap.height + (!(!(lineY))+0)*configMap.width);
-      return stateMap.stringLength;
-   }
-
-   var getInputLength = function() {
-      return configMap.qBlocks;
-   }
-
-   var getTrueInd = function (lineX, lineY, ind, workWay) {
+   var getTrueInd = function (xCell, yCell, ind, workWay) {
       var x, y;
-      //Расчет индекса поля
-      if (workWay == 'field') {
-         lineX = lineX + (!(!(lineX))+0)*(configMap.qBlocks-1);
-         lineY = lineY + (!(!(lineY))+0)*(configMap.qBlocks-1);
+
+      if (workWay == 'fromLineInd') { //Знаю lineInd
+         x = ((ind <  configMap.width) + 0) * (ind + 1);
+         y = ((ind >= configMap.width) + 0) * (ind - configMap.width + 1);
       } else {
-      //Расчет индекса инпута
-         lineX = lineX * ((lineX >= configMap.qBlocks)+0);
-         lineY = lineY * ((lineY >= configMap.qBlocks)+0);
+         //Расчет индекса поля
+         if (workWay == 'field') {
+            xCell = xCell + (!(!(xCell)) + 0) * (configMap.qBlocks - 1);
+            yCell = yCell + (!(!(yCell)) + 0) * (configMap.qBlocks - 1);
+         } else {
+         //Расчет индекса инпута
+            xCell = xCell * ((xCell >= configMap.qBlocks) + 0);
+            yCell = yCell * ((yCell >= configMap.qBlocks) + 0);
+
+            if (workWay == 'toLineInd') { //Знаю xCell, yCell
+               x = xCell - (configMap.qBlocks) * (!(!(xCell)) + 0);
+               y = yCell - (configMap.qBlocks) * (!(!(yCell)) + 0);
+               return (x + y + (!(!(yCell)) + 0) * (configMap.width));
+            }
+
+         }
+         x = xCell + (!(xCell) + 0) * ind;
+         y = yCell + (!(yCell) + 0) * ind;
       }
-      x = lineX + (!(lineX)+0)*ind;
-      y = lineY + (!(lineY)+0)*ind;
 
       return {
          x : x,
@@ -67,123 +64,177 @@ middle = (function () {
    }
 
    //Выдает значение ячейки
-   var getFieldNumber = function (lineX, lineY, index, workWay) { //absPass - false поле с инпутами, true - только рабочее поле
+   var getCellNumber = function (xCell, yCell, index, workWay) { //absPass - false поле с инпутами, true - только рабочее поле
       var ind;
-      ind = getTrueInd(lineX, lineY, index, workWay);
+      ind = getTrueInd(xCell, yCell, index, workWay);
       return field[ind.y][ind.x].number;
    }
 
-   var setFieldNumber = function (lineX, lineY, ind, workWay) { //absPass - false поле с инпутами, true - только рабочее поле
+   //Установка значения ячейки
+   var setCellNumber = function (xCell, yCell, ind, num) { //absPass - false поле с инпутами, true - только рабочее поле
       var ind;
-      ind = getTrueInd(lineX, lineY, index, workWay);
-      field[ind.y][ind.x].setNum(55);
+      ind = getTrueInd(xCell, yCell, ind, 'field');
+      field[ind.y][ind.x].setNum(num);
    }
 
-   //Количество блоков (blocks) и свободных клеток в строке, первоначальная длина перебора (freeCells)
-   var getQuanBlocksFreeCells = function (lineX, lineY) {
-      var inputInd, blockInd = 0, freeCells = 0, pieceLen, i, stringLength;
-      //Вычислаем реальный номер строки
-      for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd--) {
-         pieceLen = getFieldNumber(lineX, lineY, inputInd, 'field');
-         if (pieceLen > 0) {
-            stateMap.blocks[blockInd] = {
-               lengthBloks : pieceLen,
-               blocksLocation : 0
+   //Конструктор линии, с функциями перебора
+   var Line = function (xCell, yCell) {
+      var 
+      blocksPosition = new Array(), //Места нахождения блоков в примитивном переборе, ххх, хх х, х хх, х х х
+      lengthBloks = new Array(), //Размеры блоков, 1 3 2 5
+      tempPermanentLine = new Array(), //Временная строка с точно найденными ячейками
+      inputLength = 0, //Кол-во блоков в строке
+      stringLength = getFieldLength(xCell, yCell), //Текущая длина строки
+      freeCells = 0,
+      nVar = 0;
+      var variantLine = new Array(); //Временная расстановка блоков
+
+      //Количество блоков (blocks) и свободных клеток в строке, первоначальная длина перебора (freeCells)
+      this.getQuanBlocksFreeCells = function () {
+         var inputInd, blockInd = 0, pieceLen, i;
+         //Вычислаем реальный номер строки
+         for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd--) {
+            pieceLen = getCellNumber(xCell, yCell, inputInd, 'field');
+            if (pieceLen > 0) {
+               lengthBloks[blockInd] = pieceLen;
+               blocksPosition[blockInd] = 0;
+               freeCells += pieceLen;
+               blockInd++;
+            } else {
+               break;
             }
-            /*stateMap.lengthBloks[blockInd] = pieceLen;
-            stateMap.blocksLocation[blockInd] = 0;*/
-            freeCells += pieceLen;
-            blockInd++;
-         } else {
-            break;
          }
-      }
-      
-      //Общая длина строки
-      stringLength = getFieldLength(lineX, lineY);
 
-      freeCells -= 1; //Сумма лишней длины блоков с пробелами, послед. пробел не учит
-      freeCells = stringLength - freeCells; // Длина строки без лишнего
-      freeCells -= blockInd - 1; //Кол-во свобод. клеток для каждого блока
+         freeCells -= 1; //Сумма лишней длины блоков с пробелами, послед. пробел не учит
+         freeCells = stringLength - freeCells; // Длина строки без лишнего
+         freeCells -= blockInd - 1; //Кол-во свобод. клеток для каждого блока
 
-      stateMap.qBlocks = blockInd;
-      stateMap.freeCells = freeCells;
+         inputLength = blockInd;
+         freeCells = freeCells;
 
-      for (i = 0; i < stringLength; i++) {
-         stateMap.tempPermanentLine[i] = 1; //stateMap.permanentLine[i];
-      }
-      goSearch(blockInd-1, freeCells);
-   }
-
-   //Создание блока пустых или полных ячеек
-   var makeVarLine = function () {
-      var variantLine = new Array();
-      var i, s = '', s2 = '', symb, 
-      nB, //Счетчик номера блока
-      lB; //Счетчик длины блока
-
-      //Инициализируем результир массив
-      for (i = 0; i < stateMap.stringLength; i++) {
-         variantLine[i] = 0;
+         for (i = 0; i < stringLength; i++) {
+            tempPermanentLine[i] = 1;
+         }
+         goSearch(blockInd-1, freeCells);
       }
 
-      //Наполняем массив блоками
-      i = 0;
-      for (nB = 0; nB < stateMap.qBlocks; nB++) {
-         /*            stateMap.blocks[blockInd] = {
-               lengthBloks : pieceLen,
-               blocksLocation : 0
-            }*/
-         i += stateMap.blocks[nB].blocksLocation;
-         //i += stateMap.blocksLocation[nB];
-         for (lB = 0; lB < stateMap.blocks[nB].lengthBloks; /*stateMap.lengthBloks[nB];*/ lB++) {
-            variantLine[i] = 1;
-            i++;
+      //Создание блока пустых или полных ячеек
+      var makeVarLine = function () {
+         var i, s = '', s2 = '', symb, 
+         nB, //Счетчик номера блока
+         lB; //Счетчик длины блока
+
+         //Инициализируем результир массив
+         for (i = 0; i < stringLength; i++) {
+            variantLine[i] = 0;
          }
-         if (nB < stateMap.qBlocks - 1) {
-            i++;
+
+         //Наполняем массив блоками
+         i = 0;
+         for (nB = 0; nB < inputLength; nB++) {
+            i += blocksPosition[nB];
+            for (lB = 0; lB < lengthBloks[nB]; lB++) {
+               variantLine[i] = 1;
+               i++;
+            }
+            if (nB < inputLength - 1) {
+               i++;
+            }
          }
+
+         for (i = 0; i < stringLength; i++) {
+            if(variantLine[i]) {
+               symb = 'x';
+            } else {
+               symb = '.';
+            }
+            s += symb;
+
+            tempPermanentLine[i] = 
+            tempPermanentLine[i] & 
+            variantLine[i];
+
+            if(tempPermanentLine[i]) {
+               symb = 'x';
+            } else {
+               symb = '.';
+            }
+            s2 += symb;
+         }
+
+         /*for (i = 0; i < stringLength; i++) {
+            setCellNumber(tempPermanentLine[i]);
+         }*/
+         console.log(s + ' : ' + s2);
       }
 
-      for (i = 0; i < stateMap.stringLength; i++) {
-         if(variantLine[i]) {
-            symb = 'x';
-         } else {
-            symb = '.';
+      //Перебор примитивных вариантов
+      var goSearch = function (nBlock, freeCells) {
+         if (nBlock < 0) return;
+         if (freeCells < 0) return;
+         blocksPosition[nBlock] = 0;
+         while (blocksPosition[nBlock] < freeCells) {
+            goSearch(nBlock-1, freeCells - blocksPosition[nBlock]);
+            if (nBlock == 0) {
+               //Вариант сформирован, можно использовать
+               nVar++;
+               makeVarLine();
+            }
+            blocksPosition[nBlock]++;
          }
-         s += symb;
-
-         stateMap.tempPermanentLine[i] = 
-         stateMap.tempPermanentLine[i] & 
-         variantLine[i];
-
-         if(stateMap.tempPermanentLine[i]) {
-            symb = 'x';
-         } else {
-            symb = '.';
-         }
-         s2 += symb;
+         return;
       }
-      console.log(s + ' : ' + s2);
-   }
 
-   //Перебор примитивных вариантов
-   var goSearch = function (nBlock, freeCells) {
-      if (nBlock < 0) return;
-      if (freeCells < 0) return;
-      stateMap.blocks[nBlock].blocksLocation = 0;
-      //stateMap.blocksLocation[nBlock] = 0;
-      while (stateMap.blocks[nBlock].blocksLocation/*stateMap.blocksLocation[nBlock]*/ < freeCells) {
-         goSearch(nBlock-1, freeCells - stateMap.blocks[nBlock].blocksLocation/*stateMap.blocksLocation[nBlock]*/);
-         if (nBlock == 0) {
-            //Вариант сформирован, можно использовать
-            stateMap.nVar++;
-            makeVarLine();
+      //Проверка суммы уже введенных чисел в ячейки с новым числом
+      this.checkSumLength = function (num) {
+         var sum = num+1, indCell, ind, stringLength;
+         
+         //Число должно быть больше нуля
+         if (!(num > 0)) return null;
+
+         ind = getTrueInd(xCell, yCell, 0, 'field');
+         stringLength = getFieldLength(ind.x, ind.y);
+
+         //Суммирование данной строки чисел
+         for (indCell = 0; indCell < configMap.qBlocks; indCell++) {
+            ind = getTrueInd(xCell, yCell, indCell, 'field');
+            if (ind.y != yCell || ind.x != xCell) {
+               sum += field[ind.y][ind.x].number;
+               if (field[ind.y][ind.x].number > 0) {
+                  sum++;
+               }
+            }
          }
-         stateMap.blocks[nBlock].blocksLocation++;
-         //stateMap.blocksLocation[nBlock]++;
+
+         //Если сумма в строке + мин. отступы превышает длину строки = null
+         if (!((sum - 1) <= stringLength)) {
+            return null;
+         }
+         return num;
       }
-      return;
+
+      //Удаление пустых клеток в инпуте
+      this.defrag = function () {
+         var thisCell, freeInd, fullInd, ind;
+         for (freeInd = configMap.qBlocks - 1; freeInd > 0; freeInd--) {
+            if (!(getCellNumber(xCell, yCell, freeInd) > 0)) {
+               for (fullInd = freeInd - 1; fullInd >= 0; fullInd --) {
+                  thisCell = getCellNumber(xCell, yCell, fullInd);
+                  if (thisCell > 0) {
+
+                     ind = getTrueInd(xCell, yCell, fullInd, 'field');
+                     field[ind.y][ind.x].setNum(null);
+
+                     ind = getTrueInd(xCell, yCell, freeInd, 'field');
+                     field[ind.y][ind.x].setNum(thisCell);
+
+                     freeInd = fullInd + 1;
+                     break;
+                  }
+               }
+            }
+         }
+      }
    }
 
    //Тип ячейки в зависимости от ее координат
@@ -207,8 +258,9 @@ middle = (function () {
    var Cell = function (xCell, yCell) {
       var x, y;
       var stringLength = getFieldLength(xCell, yCell);
-      var inputLength = getInputLength();
 
+      this.xCell = xCell;
+      this.yCell = yCell;
       this.type = getCellType(xCell, yCell);
       this.$cell = {};
       this.number = null;
@@ -216,9 +268,14 @@ middle = (function () {
       //Перехват окончания ввода числа
       var handleFocus = function(that) {
          var num = Number($(this).val().replace(/\D+/g,""));
-         num = that.data.checkSumLength(num);
+         var xCell = that.data.xCell;
+         var yCell = that.data.yCell;
+         var ind;
+
+         ind = getTrueInd (xCell, yCell, 0, 'toLineInd');
+         num = lines[ind].checkSumLength(num);
          that.data.setNum(num);
-         that.data.defrag();
+         lines[ind].defrag();
       }
 
       //Инициализация ячейки
@@ -260,57 +317,6 @@ middle = (function () {
             this.$cell.val(num);
          }
       }
-
-      //Проверка суммы уже введенных чисел в ячейки с новым числом
-      this.checkSumLength = function (num) {
-         var sum = num+1, indCell, ind, stringLength;
-         
-         //Число должно быть больше нуля
-         if (!(num > 0)) return null;
-
-         ind = getTrueInd(xCell, yCell, 0);
-         stringLength = getFieldLength(ind.x, ind.y);
-
-         //Суммирование данной строки чисел
-         for (indCell = 0; indCell < configMap.qBlocks; indCell++) {
-            ind = getTrueInd(xCell, yCell, indCell);
-            if (ind.y != yCell || ind.x != xCell) {
-               sum += field[ind.y][ind.x].number;
-               if (field[ind.y][ind.x].number > 0) {
-                  sum++;
-               }
-            }
-         }
-
-         //Если сумма в строке + мин. отступы превышает длину строки = null
-         if (!((sum - 1) <= stringLength)) {
-            return null;
-         }
-         return num;
-      }
-
-      //Удаление пустых клеток в инпуте
-      this.defrag = function () {
-         var thisCell, freeInd, fullInd, ind;
-         for (freeInd = configMap.qBlocks - 1; freeInd > 0; freeInd--) {
-            if (!(getFieldNumber(xCell, yCell, freeInd) > 0)) {
-               for (fullInd = freeInd - 1; fullInd >= 0; fullInd --) {
-                  thisCell = getFieldNumber(xCell, yCell, fullInd);
-                  if (thisCell > 0) {
-
-                     ind = getTrueInd(xCell, yCell, fullInd);
-                     field[ind.y][ind.x].setNum(null);
-
-                     ind = getTrueInd(xCell, yCell, freeInd);
-                     field[ind.y][ind.x].setNum(thisCell);
-
-                     freeInd = fullInd + 1;
-                     break;
-                  }
-               }
-            }
-         }
-      }
    }
 
    //Инициализация поля с клетками
@@ -324,7 +330,7 @@ middle = (function () {
       var smallBoxSize = configMap.smallBoxSize;
       var fullSmallBoxSize = (smallBoxSize+margineCss*2);
       var spaceBoxSize = fullSmallBoxSize*qBlocks - margineCss*2;
-      var cellConf = {};
+      var lineInd, ind;
       
       var $spaceBox = $('<div>', {
          class : 'spaceBox'
@@ -353,6 +359,11 @@ middle = (function () {
             }
          }
       }
+
+      for (lineInd = 0; lineInd < height + width; lineInd++) {
+         ind = getTrueInd (0, 0, lineInd, 'fromLineInd');
+         lines[lineInd] = new Line(ind.x, ind.y);
+      } 
    }
 
    var setJqueryMap = function () {
@@ -376,13 +387,12 @@ middle = (function () {
    return {
       initModule  : initModule,
       initField   : initField,
-      getQuanBlocksFreeCells : getQuanBlocksFreeCells,
-      goSearch : goSearch
+      lines : lines
    }
 }());
 
 //Заполнение рабочего поля в зависимости от инпутов
-   /*var fillString = function (lineX, lineY) {
+   /*var fillString = function (xCell, yCell) {
       var ind, x, y, stringLength, inputLength, inputInd, fieldInd = 0, pieceInd, pieceLen, freeFlag = true;
 
       var setCell = function (cellType, ind) {
@@ -391,8 +401,8 @@ middle = (function () {
             fieldInd++;
          }
 
-         x = lineX + (!(lineX)+0)*(ind);
-         y = lineY + (!(lineY)+0)*(ind);
+         x = xCell + (!(xCell)+0)*(ind);
+         y = yCell + (!(yCell)+0)*(ind);
 
          switch (cellType) {
             case "work" : field[y][x].blockCell(); break;
@@ -402,12 +412,12 @@ middle = (function () {
       }
 
       //X или Y должен быть равен 0, оба не могут быть равны и меньше нуля
-      if (lineX > 0 && lineY > 0) return false;
-      if (lineX < 0 || lineY < 0) return false;
-      if (lineX == 0 && lineY == 0) return false;
-      if (lineX < configMap.qBlocks && lineY < configMap.qBlocks) return false;
+      if (xCell > 0 && yCell > 0) return false;
+      if (xCell < 0 || yCell < 0) return false;
+      if (xCell == 0 && yCell == 0) return false;
+      if (xCell < configMap.qBlocks && yCell < configMap.qBlocks) return false;
       
-      stringLength = (!(!(lineY))+0)*configMap.width + (!(!(lineX))+0)*configMap.height;
+      stringLength = (!(!(yCell))+0)*configMap.width + (!(!(xCell))+0)*configMap.height;
 
       for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd--) {
          setCell("line", inputInd);
