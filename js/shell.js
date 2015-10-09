@@ -29,7 +29,7 @@ shell = (function () {
 		switch (msg_map.action) {
 			case 'setField'	: middle.initField(msg_map.data); break;
 			case 'solve'	: 
-			lines[0].getQuanBlocksFreeCells();
+			middle.lines[0].getQuanBlocksFreeCells();
 			//stateMap.quan = middle.getQuanInputs(1,0); 
 			//middle.fillString(5,0);
 			break;

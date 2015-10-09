@@ -63,20 +63,6 @@ middle = (function () {
       }
    }
 
-   //Выдает значение ячейки
-   var getCellNumber = function (xCell, yCell, index, workWay) { //absPass - false поле с инпутами, true - только рабочее поле
-      var ind;
-      ind = getTrueInd(xCell, yCell, index, workWay);
-      return field[ind.y][ind.x].number;
-   }
-
-   //Установка значения ячейки
-   var setCellNumber = function (xCell, yCell, ind, num) { //absPass - false поле с инпутами, true - только рабочее поле
-      var ind;
-      ind = getTrueInd(xCell, yCell, ind, 'field');
-      field[ind.y][ind.x].setNum(num);
-   }
-
    //Конструктор линии, с функциями перебора
    var Line = function (xCell, yCell) {
       var 
@@ -89,12 +75,30 @@ middle = (function () {
       nVar = 0;
       var variantLine = new Array(); //Временная расстановка блоков
 
+      var getInd = function (ind) {
+         return getTrueInd(xCell, yCell, ind, '');
+      }
+
+      //Выдает значение ячейки
+      var getCellNumber = function (index) { //absPass - false поле с инпутами, true - только рабочее поле
+         var ind;
+         ind = getTrueInd(xCell, yCell, index, '');
+         return field[ind.y][ind.x].number;
+      }
+
+      //Установка значения ячейки
+      var setCellNumber = function (index, num) { //absPass - false поле с инпутами, true - только рабочее поле
+         var ind;
+         ind = getTrueInd(xCell, yCell, index, '');
+         field[ind.y][ind.x].setNum(num);
+      }
+
       //Количество блоков (blocks) и свободных клеток в строке, первоначальная длина перебора (freeCells)
       this.getQuanBlocksFreeCells = function () {
          var inputInd, blockInd = 0, pieceLen, i;
          //Вычислаем реальный номер строки
          for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd--) {
-            pieceLen = getCellNumber(xCell, yCell, inputInd, 'field');
+            pieceLen = getCellNumber(inputInd);
             if (pieceLen > 0) {
                lengthBloks[blockInd] = pieceLen;
                blocksPosition[blockInd] = 0;
@@ -192,12 +196,12 @@ middle = (function () {
          //Число должно быть больше нуля
          if (!(num > 0)) return null;
 
-         ind = getTrueInd(xCell, yCell, 0);
+         ind = getInd(0);
          stringLength = getFieldLength(ind.x, ind.y);
 
          //Суммирование данной строки чисел
          for (indCell = 0; indCell < configMap.qBlocks; indCell++) {
-            ind = getTrueInd(xCell, yCell, indCell);
+            ind = getInd(indCell);
             if (ind.y != yCell || ind.x != xCell) {
                sum += field[ind.y][ind.x].number;
                if (field[ind.y][ind.x].number > 0) {
@@ -217,20 +221,17 @@ middle = (function () {
       this.defrag = function () {
          var thisCell, freeInd, fullInd, ind;
          for (freeInd = configMap.qBlocks - 1; freeInd > 0; freeInd--) {
-            if (!(getCellNumber(xCell, yCell, freeInd) > 0)) {
-               for (fullInd = freeInd - 1; fullInd >= 0; fullInd --) {
-                  thisCell = getCellNumber(xCell, yCell, fullInd);
-                  if (thisCell > 0) {
+            if (getCellNumber(freeInd) > 0) break;
 
-                     ind = getTrueInd(xCell, yCell, fullInd);
-                     field[ind.y][ind.x].setNum(null);
+            for (fullInd = freeInd - 1; fullInd >= 0; fullInd --) {
+               thisCell = getCellNumber(fullInd);
+               if (thisCell > 0) {
 
-                     ind = getTrueInd(xCell, yCell, freeInd);
-                     field[ind.y][ind.x].setNum(thisCell);
+                  setCellNumber(fullInd, null);
+                  setCellNumber(freeInd, thisCell);
 
-                     freeInd = fullInd + 1;
-                     break;
-                  }
+                  freeInd = fullInd + 1;
+                  break;
                }
             }
          }
