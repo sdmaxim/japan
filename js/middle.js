@@ -221,9 +221,10 @@ middle = (function () {
 
    //Тип ячейки в зависимости от ее координат
    var getCellType = function (xCell, yCell) {
-      if (yCell < configMap.qBlocks && xCell < configMap.qBlocks) return ZERO;
-      if (yCell < configMap.qBlocks && xCell >= configMap.qBlocks) return TOP;
-      if (yCell >= configMap.qBlocks && xCell < configMap.qBlocks) return LEFT;
+      var qBlocks = configMap.qBlocks;
+      if (yCell < qBlocks && xCell < qBlocks) return ZERO;
+      if (yCell < qBlocks && xCell >= qBlocks) return TOP;
+      if (yCell >= qBlocks && xCell < qBlocks) return LEFT;
       if (!(xCell > 0 && yCell > 0)) return false;
       return FREE;
    }
