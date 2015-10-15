@@ -27,40 +27,40 @@ middle = (function () {
    margineCss = 2;
 
    var getFieldLength = function(xCell, yCell) {
-      return ((!(!(xCell))+0)*configMap.height + (!(!(yCell))+0)*configMap.width);
+      return (!!xCell)*configMap.height + (!!yCell)*configMap.width;
    }
 
    var getTrueInd = function (xCell, yCell, ind, workWay) {
       var x, y, cellInd;
 
       if (workWay == 'fromLineInd') { //Знаю lineInd
-         x = ((ind <  configMap.width) + 0) * (ind + configMap.qBlocks);
-         y = ((ind >= configMap.width) + 0) * (ind - configMap.width + configMap.qBlocks);
+         x = (ind <  configMap.width) * (ind + configMap.qBlocks);
+         y = (ind >= configMap.width) * (ind - configMap.width + configMap.qBlocks);
       } else {
          //Расчет индекса поля
          if (workWay == 'field') {
-            xCell = xCell + (!(!(xCell)) + 0) * (configMap.qBlocks - 1);
-            yCell = yCell + (!(!(yCell)) + 0) * (configMap.qBlocks - 1);
+            xCell = (!!xCell) * configMap.qBlocks;
+            yCell = (!!yCell) * configMap.qBlocks;
+            ind += xCell + yCell;
          } else {
          //Расчет индекса инпута
-            cellInd = xCell * ((xCell < configMap.qBlocks) + 0) + yCell * ((yCell < configMap.qBlocks) + 0);
+            cellInd = xCell * (xCell < configMap.qBlocks) + yCell * (yCell < configMap.qBlocks);
 
-            xCell = xCell * ((xCell >= configMap.qBlocks) + 0);
-            yCell = yCell * ((yCell >= configMap.qBlocks) + 0);
+            xCell = xCell * (xCell >= configMap.qBlocks);
+            yCell = yCell * (yCell >= configMap.qBlocks);
 
             if (workWay == 'toLineInd') { //Знаю xCell, yCell
-               x = xCell - (configMap.qBlocks) * (!(!(xCell)) + 0);
-               y = yCell - (configMap.qBlocks) * (!(!(yCell)) + 0);
+               x = xCell - (configMap.qBlocks) * (!!xCell);
+               y = yCell - (configMap.qBlocks) * (!!yCell);
 
                return {
-                  line : x + y + (!(!(yCell)) + 0) * (configMap.width),
+                  line : x + y + (!!yCell) * (configMap.width),
                   cell : cellInd
                }
             }
-
          }
-         x = xCell + (!(xCell) + 0) * ind;
-         y = yCell + (!(yCell) + 0) * ind;
+         x = xCell + (!xCell) * ind;
+         y = yCell + (!yCell) * ind;
       }
 
       return {
@@ -95,7 +95,7 @@ middle = (function () {
       //Установка значения ячейки
       var setCellNumber = function (index, num) {
          var ind;
-         ind = getTrueInd(xCell, yCell, index, '');
+         ind = getTrueInd(xCell, yCell, index, 'field');
          field[ind.y][ind.x].setNum(num);
       }
 
@@ -121,11 +121,29 @@ middle = (function () {
 
          for (i = 0; i < stringLength; i++) tempPermanentLine[i] = 1;
          goSearch(blockInd-1, freeCells);
+
+         for (i = 0; i < stringLength; i++) {
+            if (tempPermanentLine[i]) setCellNumber(i, 1);
+         }
+
+      }
+
+      //Перебор примитивных вариантов, примитивные значит без учета длины блока
+      var goSearch = function (nBlock, freeCells) {
+         if (nBlock < 0) return;
+         if (freeCells < 0) return;
+         blocksPosition[nBlock] = 0;
+         while (blocksPosition[nBlock] < freeCells) {
+            goSearch(nBlock-1, freeCells - blocksPosition[nBlock]);
+            if (nBlock == 0) makeVarLine(); //Вариант сформирован, можно использовать
+            blocksPosition[nBlock]++;
+         }
+         return;
       }
 
       //Создание блока пустых или полных ячеек
       var makeVarLine = function () {
-         var i, s = '', s2 = '', symb,
+         var i, s = '', s2 = '', symb, block, 
          nB, //Счетчик номера блока
          lB; //Счетчик длины блока
 
@@ -148,34 +166,32 @@ middle = (function () {
             variantLine[i] |= getCellNumber(i, 'field');
          }
 
+         //Проверка слияния на корректность 
+         lB = 0; nB = 0;
+         for (i = 0; i < stringLength; i++) {
+            if (variantLine[i]) {
+               lB++;
+            } else {
+               if (lB > 0) {
+                  if (lengthBloks[nB] != lB) return false;
+                  nB++;
+               }
+               lB = 0;
+            }
+         }
+
          //Находим столбик единиц из всех вариантов
          for (i = 0; i < stringLength; i++) {
-            symb = (variantLine[i]) ? 'x' : '.'
+            symb = (variantLine[i]) ? 'x' : '.';
             s += symb;
 
             tempPermanentLine[i] &= variantLine[i];
 
-            symb = (tempPermanentLine[i]) ? 'x' : '.'
+            symb = (tempPermanentLine[i]) ? 'x' : '.';
             s2 += symb;
          }
 
-         /*for (i = 0; i < stringLength; i++) {
-            setCellNumber(tempPermanentLine[i]);
-         }*/
          console.log(s + ' : ' + s2);
-      }
-
-      //Перебор примитивных вариантов, примитивные значит без учета длины блока
-      var goSearch = function (nBlock, freeCells) {
-         if (nBlock < 0) return;
-         if (freeCells < 0) return;
-         blocksPosition[nBlock] = 0;
-         while (blocksPosition[nBlock] < freeCells) {
-            goSearch(nBlock-1, freeCells - blocksPosition[nBlock]);
-            if (nBlock == 0) makeVarLine(); //Вариант сформирован, можно использовать
-            blocksPosition[nBlock]++;
-         }
-         return;
       }
 
       //Проверка суммы уже введенных чисел в ячейки с новым числом
@@ -275,7 +291,7 @@ middle = (function () {
 
       //Установка числа в ячейку
       this.setNum = function (num) {
-         var className;
+         var className = null;
          if (this.type >= FREE) {
             switch(num+FREE) {
                case FREE : className = 'free'; break;
@@ -283,7 +299,8 @@ middle = (function () {
                case SPACE : className = 'space'; break;
             }
             if (className) {
-               this.$cell.toggleClass('free');
+               this.$cell.removeClass();
+               this.$cell.addClass(className);
                this.type = num+FREE;
                this.number = num;
             }
