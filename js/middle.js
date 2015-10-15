@@ -26,6 +26,16 @@ middle = (function () {
    SPACE = 5 //Точно пустые
    margineCss = 2;
 
+   var solve = function () {
+      var i;
+      for (i = 0; i < configMap.width + configMap.height; i++) {
+         lines[i].getQuanBlocksFreeCells();
+      }
+      for (i = 0; i < configMap.width + configMap.height; i++) {
+         lines[i].getQuanBlocksFreeCells();
+      }
+   }
+
    var getFieldLength = function(xCell, yCell) {
       return (!!xCell)*configMap.height + (!!yCell)*configMap.width;
    }
@@ -39,9 +49,7 @@ middle = (function () {
       } else {
          //Расчет индекса поля
          if (workWay == 'field') {
-            xCell = (!!xCell) * configMap.qBlocks;
-            yCell = (!!yCell) * configMap.qBlocks;
-            ind += xCell + yCell;
+            ind += configMap.qBlocks;
          } else {
          //Расчет индекса инпута
             cellInd = xCell * (xCell < configMap.qBlocks) + yCell * (yCell < configMap.qBlocks);
@@ -78,7 +86,16 @@ middle = (function () {
       inputLength = 0, //Кол-во блоков в строке
       stringLength = getFieldLength(xCell, yCell), //Текущая длина строки
       variantLine = new Array(), //Временная расстановка блоков
-      freeCells = 0;
+      lineInd = getTrueInd(xCell, yCell, 0, 'toLineInd').line, //индекс линии
+      freeCells;
+
+      this.fillDbData = function () {
+         var i = 0;
+         while (db.data[lineInd][i] > 0) {
+            setCellNumber(configMap.qBlocks-i-1, db.data[lineInd][i]);
+            i++;
+         }
+      }
 
       var getInd = function (ind) {
          return getTrueInd(xCell, yCell, ind, '');
@@ -93,9 +110,9 @@ middle = (function () {
       }
 
       //Установка значения ячейки
-      var setCellNumber = function (index, num) {
+      var setCellNumber = function (index, num, area) {
          var ind;
-         ind = getTrueInd(xCell, yCell, index, 'field');
+         ind = getTrueInd(xCell, yCell, index, area);
          field[ind.y][ind.x].setNum(num);
       }
 
@@ -103,15 +120,14 @@ middle = (function () {
       this.getQuanBlocksFreeCells = function () {
          var inputInd, blockInd = 0, pieceLen, i;
          //Вычислаем реальный номер строки
-         for (inputInd = configMap.qBlocks-1; inputInd >= 0; inputInd--) {
+         freeCells = 0;
+         for (inputInd = 0; inputInd < configMap.qBlocks; inputInd++) {
             pieceLen = getCellNumber(inputInd);
             if (pieceLen > 0) {
                lengthBloks[blockInd] = pieceLen;
                blocksPosition[blockInd] = 0;
                freeCells += pieceLen;
                blockInd++;
-            } else {
-               break;
             }
          }
 
@@ -119,13 +135,10 @@ middle = (function () {
          freeCells = stringLength - freeCells - blockInd + 2;
          inputLength = blockInd;
 
-         for (i = 0; i < stringLength; i++) tempPermanentLine[i] = 1;
+         fillLine('initPerm');
+         //Начинаем перебор вариантов в строке
          goSearch(blockInd-1, freeCells);
-
-         for (i = 0; i < stringLength; i++) {
-            if (tempPermanentLine[i]) setCellNumber(i, 1);
-         }
-
+         fillLine('setCell');
       }
 
       //Перебор примитивных вариантов, примитивные значит без учета длины блока
@@ -141,57 +154,72 @@ middle = (function () {
          return;
       }
 
-      //Создание блока пустых или полных ячеек
-      var makeVarLine = function () {
-         var i, s = '', s2 = '', symb, block, 
-         nB, //Счетчик номера блока
-         lB; //Счетчик длины блока
+      var fillLine = function (type) {
+         var i, s = '', s2 = '', symb, 
+            nB, //Счетчик номера блока
+            lB; //Счетчик длины блока
 
-         //Инициализируем результирующий массив
-         for (i = 0; i < stringLength; i++) variantLine[i] = 0;
-
-         //Наполняем массив блоками
-         i = 0;
-         for (nB = 0; nB < inputLength; nB++) {
-            i += blocksPosition[nB];
-            for (lB = 0; lB < lengthBloks[nB]; lB++) {
-               variantLine[i] = 1;
-               i++;
+         //Заполняем массив блоками согласно варианту
+         if (type == 'fill') {
+            i = 0;
+            for (nB = 0; nB < inputLength; nB++) {
+               i += blocksPosition[nB];
+               for (lB = 0; lB < lengthBloks[nB]; lB++) {
+                  variantLine[i] = 1;
+                  i++;
+               }
+               if (nB < inputLength - 1) i++;
             }
-            if (nB < inputLength - 1) i++;
+            return;
          }
-
-         //Слияние перманента и текущего варианта для проверки правильности растановки в данном варианте
-         for (i = 0; i < stringLength; i++) {
-            variantLine[i] |= getCellNumber(i, 'field');
-         }
-
-         //Проверка слияния на корректность 
          lB = 0; nB = 0;
          for (i = 0; i < stringLength; i++) {
-            if (variantLine[i]) {
-               lB++;
-            } else {
-               if (lB > 0) {
-                  if (lengthBloks[nB] != lB) return false;
-                  nB++;
-               }
-               lB = 0;
+            switch (type) {
+               //Инициализируем временный массив
+               case 'initVar' : variantLine[i] = 0; break;
+               //Инициализируем результирующий массив
+               case 'initPerm' : tempPermanentLine[i] = 1; break;
+               //Заполняем поле найденными единицами
+               case 'setCell' : setCellNumber(i, tempPermanentLine[i], 'field'); break;
+               //Слияние перманента и текущего варианта для проверки правильности растановки в данном варианте
+               case 'merg' : variantLine[i] |= getCellNumber(i, 'field'); break;
+               //Проверка слияния на корректность, отсеиваем неверные варианты
+               case 'check' : 
+                  if (variantLine[i]) {
+                     lB++;
+                  } 
+                  if (i == stringLength-1 || !variantLine[i]) {
+                     if (lB > 0) {
+                        if (lengthBloks[nB] != lB) return false;
+                        nB++;
+                     }
+                     lB = 0;
+                  } 
+                  break;
+               //Просеиваем (sift), находим столбик единиц из всех вариантов
+               case 'sift' : 
+                  symb = (variantLine[i]) ? 'x' : '.';
+                  s += symb;
+                  tempPermanentLine[i] &= variantLine[i];
+                  symb = (tempPermanentLine[i]) ? 'x' : '.';
+                  s2 += symb;
+                  break;
             }
          }
-
-         //Находим столбик единиц из всех вариантов
-         for (i = 0; i < stringLength; i++) {
-            symb = (variantLine[i]) ? 'x' : '.';
-            s += symb;
-
-            tempPermanentLine[i] &= variantLine[i];
-
-            symb = (tempPermanentLine[i]) ? 'x' : '.';
-            s2 += symb;
+         if (type == 'sift') {
+            console.log(s + ' : ' + s2);
          }
+         return true;
+      }
 
-         console.log(s + ' : ' + s2);
+      //Создание блока пустых или полных ячеек
+      var makeVarLine = function () {
+         fillLine('initVar');
+         fillLine('fill');
+         fillLine('merg');
+         if (fillLine('check')) {
+            fillLine('sift');
+         }
       }
 
       //Проверка суммы уже введенных чисел в ячейки с новым числом
@@ -224,8 +252,8 @@ middle = (function () {
                thisCell = getCellNumber(fullInd);
                if (thisCell > 0) {
 
-                  setCellNumber(fullInd, null);
-                  setCellNumber(freeInd, thisCell);
+                  setCellNumber(fullInd, null, 'field');
+                  setCellNumber(freeInd, thisCell, 'field');
 
                   freeInd = fullInd + 1;
                   break;
@@ -354,6 +382,7 @@ middle = (function () {
       for (lineInd = 0; lineInd < height + width; lineInd++) {
          ind = getTrueInd (0, 0, lineInd, 'fromLineInd');
          lines[lineInd] = new Line(ind.x, ind.y);
+         lines[lineInd].fillDbData();
       } 
    }
 
@@ -378,7 +407,7 @@ middle = (function () {
    return {
       initModule  : initModule,
       initField   : initField,
-      lines : lines
+      solve : solve
    }
 }());
 

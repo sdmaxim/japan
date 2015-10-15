@@ -28,13 +28,8 @@ shell = (function () {
 		var line1 = 0;	
 		switch (msg_map.action) {
 			case 'setField'	: middle.initField(msg_map.data); break;
-			case 'solve'	: 
-			middle.lines[0].getQuanBlocksFreeCells();
-			//stateMap.quan = middle.getQuanInputs(1,0); 
-			//middle.fillString(5,0);
-			break;
-			
-			case 'getData'	: break;
+			case 'solve'	: middle.solve(); break;
+			case 'getData'	: //db.init(); break;
 			case 'setData'	: break;
 			case 'clear'	: break;
 		};
