@@ -106,7 +106,7 @@ div.left-management li.menuitem{
 	text-align: center;
 }
 
-#middle .work, #middle .free {
+#middle .work, #middle .free, #middle .space {
 	float: left;
 	background: #C55;
 	border: 1px solid #888;
@@ -117,4 +117,8 @@ div.left-management li.menuitem{
 }
 #middle .free {
 	background: #FBFFFB;
+}
+
+#middle .space {
+	background: #E4EDFF;
 }

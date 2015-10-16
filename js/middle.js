@@ -26,8 +26,27 @@ middle = (function () {
    SPACE = 5 //Точно пустые
    margineCss = 2;
 
+(function() { 
+   variable = "Hello, world".indexOf("world");
+   var a = 4;
+   
+   (function () { 
+      var a = 5; 
+      alert(a); 
+   })(); 
+
+   alert(a);
+})();
+alert(variable);
+alert(a);
+
+
    var solve = function () {
       var i;
+
+      for (i = 0; i < configMap.width + configMap.height; i++) {
+         lines[i].getQuanBlocksFreeCells();
+      }
       for (i = 0; i < configMap.width + configMap.height; i++) {
          lines[i].getQuanBlocksFreeCells();
       }
@@ -82,7 +101,8 @@ middle = (function () {
       var 
       blocksPosition = new Array(), //Места нахождения блоков в примитивном переборе, ххх, хх х, х хх, х х х
       lengthBloks = new Array(), //Размеры блоков, 1 3 2 5
-      tempPermanentLine = new Array(), //Временная строка с точно найденными ячейками
+      tempBlockLine = new Array(), //Временная строка с точно найденными ячейками блоков
+      tempSpaceLine = new Array(), //Временная строка с точно найденными пустотами
       inputLength = 0, //Кол-во блоков в строке
       stringLength = getFieldLength(xCell, yCell), //Текущая длина строки
       variantLine = new Array(), //Временная расстановка блоков
@@ -135,7 +155,7 @@ middle = (function () {
          freeCells = stringLength - freeCells - blockInd + 2;
          inputLength = blockInd;
 
-         fillLine('initPerm');
+         fillLine('initTemp');
          //Начинаем перебор вариантов в строке
          goSearch(blockInd-1, freeCells);
          fillLine('setCell');
@@ -155,7 +175,7 @@ middle = (function () {
       }
 
       var fillLine = function (type) {
-         var i, s = '', s2 = '', symb, 
+         var i, s = '', s2 = '', s3 = '', symb, cellNum, 
             nB, //Счетчик номера блока
             lB; //Счетчик длины блока
 
@@ -172,17 +192,34 @@ middle = (function () {
             }
             return;
          }
+
          lB = 0; nB = 0;
          for (i = 0; i < stringLength; i++) {
             switch (type) {
                //Инициализируем временный массив
-               case 'initVar' : variantLine[i] = 0; break;
+               case 'initVar' : 
+                  variantLine[i] = 0; 
+               break;
+
                //Инициализируем результирующий массив
-               case 'initPerm' : tempPermanentLine[i] = 1; break;
-               //Заполняем поле найденными единицами
-               case 'setCell' : setCellNumber(i, tempPermanentLine[i], 'field'); break;
+               case 'initTemp' : 
+                  tempBlockLine[i] = 1; 
+                  tempSpaceLine[i] = 0; 
+               break;
+
+               //Заполняем поле найденными единицами + Заполняем поле найденными нулями
+               case 'setCell' : 
+                  if (tempBlockLine[i]) setCellNumber(i, 1, 'field'); 
+                  if (tempSpaceLine[i] == 0) setCellNumber(i, 2, 'field'); 
+               break;                  
+
                //Слияние перманента и текущего варианта для проверки правильности растановки в данном варианте
-               case 'merg' : variantLine[i] |= getCellNumber(i, 'field'); break;
+               case 'merg' : 
+                  cellNum = getCellNumber(i, 'field');
+                  if (cellNum == 1) variantLine[i] |= 1;
+                  if (cellNum == 2 && variantLine[i] == 1) return false;
+               break;
+
                //Проверка слияния на корректность, отсеиваем неверные варианты
                case 'check' : 
                   if (variantLine[i]) {
@@ -195,19 +232,20 @@ middle = (function () {
                      }
                      lB = 0;
                   } 
-                  break;
+               break;
+
                //Просеиваем (sift), находим столбик единиц из всех вариантов
                case 'sift' : 
-                  symb = (variantLine[i]) ? 'x' : '.';
-                  s += symb;
-                  tempPermanentLine[i] &= variantLine[i];
-                  symb = (tempPermanentLine[i]) ? 'x' : '.';
-                  s2 += symb;
-                  break;
+                  s += (variantLine[i]) ? 'x' : '.';
+                  tempBlockLine[i] &= variantLine[i];
+                  tempSpaceLine[i] |= variantLine[i];
+                  s2 += (tempBlockLine[i]) ? 'x' : '.';
+                  s3 += (tempSpaceLine[i]) ? '.' : '2';
+               break;
             }
          }
          if (type == 'sift') {
-            console.log(s + ' : ' + s2);
+            console.log(lineInd + ' | ' + s + ' : ' + s2 + ' : ' + s3);
          }
          return true;
       }
@@ -216,9 +254,10 @@ middle = (function () {
       var makeVarLine = function () {
          fillLine('initVar');
          fillLine('fill');
-         fillLine('merg');
-         if (fillLine('check')) {
-            fillLine('sift');
+         if (fillLine('merg')) {
+            if (fillLine('check')) {
+               fillLine('sift');
+            }
          }
       }
 
