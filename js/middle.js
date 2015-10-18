@@ -26,21 +26,6 @@ middle = (function () {
    SPACE = 5 //Точно пустые
    margineCss = 2;
 
-(function() { 
-   variable = "Hello, world".indexOf("world");
-   var a = 4;
-   
-   (function () { 
-      var a = 5; 
-      alert(a); 
-   })(); 
-
-   alert(a);
-})();
-alert(variable);
-alert(a);
-
-
    var solve = function () {
       var i;
 
