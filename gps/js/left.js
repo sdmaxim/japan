@@ -1,4 +1,5 @@
 left = (function () {
+	'use strict';
 	var
 	configMap = {
 		main_html : String()
@@ -6,9 +7,7 @@ left = (function () {
 			+ '<div class="left-management"></div>',
 		setSizeForm : String()
 			+ '<form>'
-				+ 'Ширина<input type="text" name="width">'
-				+ 'Высота<input type="text" name="height">'
-				+ 'Макс кол-во<input type="text" name="qBlocks">'
+				+ 'Угол<input type="text" name="maxAngle">'
 			+ '</form>'
 	},
 	stateMap = {
@@ -17,18 +16,13 @@ left = (function () {
 	jqueryMap = {
 		$setSizeForm : {},
 		$setSize : {
-			width : {},
-			height : {},
-			qBlocks : {}
+			maxAngle : {}
 		},
 		$menu    : {}
 	},
 	menuList = [
-		{	name: "Задать",		action: "setField"},
-		{	name: "Решить",		action: "solve"},
-		{	name: "Из базы",	action: "getData"},
-		{	name: "Записать",	action: "setData"},
-		{	name: "Очистить",	action: "clear"}
+		{	name: "Нарисовать",		action: "draw"},
+		{	name: "Очистить",		action: "clear"}
 	];
 
 	var button = function (name, action) {
@@ -42,9 +36,7 @@ left = (function () {
 
 		htmlButton.click(function () {
 			var msg_text = {
-				width : jqueryMap.$setSize.width.val(),
-				height : jqueryMap.$setSize.height.val(),
-				qBlocks : jqueryMap.$setSize.qBlocks.val()
+				maxAngle : jqueryMap.$setSize.maxAngle.val()
 			}
 			$.gevent.publish(
 				'left-menu',
@@ -67,16 +59,16 @@ left = (function () {
 		}
 	};
 
+	//Задание карты JQuery
 	var setJqueryMap = function () {
 		var $container = stateMap.$container;
 		jqueryMap.$setSizeForm = $container.find('.left-init');
 		jqueryMap.$menu = $container.find('.left-management');
 		jqueryMap.$setSizeForm.append( configMap.setSizeForm );
-		jqueryMap.$setSize.width = $container.find('input[name=width]');
-		jqueryMap.$setSize.height = $container.find('input[name=height]');
-		jqueryMap.$setSize.qBlocks = $container.find('input[name=qBlocks]');
+		jqueryMap.$setSize.maxAngle = $container.find('input[name=maxAngle]');
 	}
 
+	//Точка входа модуля
 	var initModule = function ($container) {
 		$container.append( configMap.main_html );
 		stateMap.$container = $container;

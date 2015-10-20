@@ -25,10 +25,10 @@ left = (function () {
 	},
 	menuList = [
 		{	name: "Задать",		action: "setField"},
-		{	name: "Решить",		action: "solve"},
-		{	name: "Из базы",	action: "getData"},
+		{	name: "Решить",		action: "solve"}
+		/*{	name: "Из базы",	action: "getData"},
 		{	name: "Записать",	action: "setData"},
-		{	name: "Очистить",	action: "clear"}
+		{	name: "Очистить",	action: "clear"}*/
 	];
 
 	var button = function (name, action) {

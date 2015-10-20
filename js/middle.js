@@ -29,6 +29,7 @@ middle = (function () {
    var solve = function () {
       var i;
 
+      //В разработке нужно добавить флаг по которому будет продолжаться овторение
       for (i = 0; i < configMap.width + configMap.height; i++) {
          lines[i].getQuanBlocksFreeCells();
       }

@@ -3,9 +3,10 @@ shell = (function () {
 
 	var
 		configMap = {
-			main_html : String() +
-				'<div id="left"></div>' +
-				'<div id="middle"></div>'
+			main_html : String()
+				+ '<div>Для теста нужно задать Ширина 7, Высота 7, Макс кол-во 3. И нажать кнопку Задать. А затем можно нажать кнопку решить</div>'
+				+ '<div id="left"></div>'
+				+ '<div id="middle"></div>'
 		},
 		stateMap = {
 			$container : {},
