@@ -1,5 +1,6 @@
 git init
 git add *.*
+git add -all //для удаления чего-либа
 git status
 git commit -m 'version'
 git remote add japan https://github.com/sdmaxim/japan.git
