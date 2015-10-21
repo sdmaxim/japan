@@ -17,27 +17,26 @@ middle = (function () {
 		$field : {},
       $header : {}
 	},
+   solveFlag, //Флаг полностью решенного кроссворда, 1 - решено
    //Типы ячеек
    ZERO = 0, //Левый верх. квадрат
    TOP = 1, //Верхние инпуты
    LEFT = 2, //Левые инпуты
    FREE = 3, //Свободные ячейки на поле
    BLOCK = 4, //Точно занятые
-   SPACE = 5 //Точно пустые
+   SPACE = 5, //Точно пустые
    margineCss = 2;
 
    var solve = function () {
       var i;
-
-      //В разработке нужно добавить флаг по которому будет продолжаться овторение
-      for (i = 0; i < configMap.width + configMap.height; i++) {
-         lines[i].getQuanBlocksFreeCells();
-      }
-      for (i = 0; i < configMap.width + configMap.height; i++) {
-         lines[i].getQuanBlocksFreeCells();
-      }
-      for (i = 0; i < configMap.width + configMap.height; i++) {
-         lines[i].getQuanBlocksFreeCells();
+      solveFlag = 1;
+      //В разработке нужно добавить флаг по которому будет продолжаться повторение
+      while (solveFlag) {
+         solveFlag = 0;
+         for (i = 0; i < configMap.width + configMap.height; i++) {
+            lines[i].getQuanBlocksFreeCells();
+            if (lines[i].solveLineFlag) solveFlag = 1;
+         }
       }
    }
 
@@ -93,7 +92,12 @@ middle = (function () {
       stringLength = getFieldLength(xCell, yCell), //Текущая длина строки
       variantLine = new Array(), //Временная расстановка блоков
       lineInd = getTrueInd(xCell, yCell, 0, 'toLineInd').line, //индекс линии
+      isFree = 0,
+      isSpace = 0,
       freeCells;
+      this.solveLineFlag; //Флаг законченности нахождения линии, 0 - линия закончена, 1 - есть изменения или незаполн. клетки
+
+      //stringLengthTemp = stringLength;
 
       this.fillDbData = function () {
          var i = 0;
@@ -125,7 +129,14 @@ middle = (function () {
       //Количество блоков (blocks) и свободных клеток в строке, первоначальная длина перебора (freeCells)
       this.getQuanBlocksFreeCells = function () {
          var inputInd, blockInd = 0, pieceLen, i;
-         //Вычислаем реальный номер строки
+         isFree = 0; isSpace = 0;
+         this.fillLine('getFree');
+         if (!isFree) {
+            this.solveLineFlag = 0;
+            return;
+         }
+
+         //Вычислаем количество своб клеток
          freeCells = 0;
          for (inputInd = 0; inputInd < configMap.qBlocks; inputInd++) {
             pieceLen = getCellNumber(inputInd);
@@ -138,29 +149,30 @@ middle = (function () {
          }
 
          //Количество свободных клеток для перемещения
-         freeCells = stringLength - freeCells - blockInd + 2;
+         freeCells = stringLength - freeCells - blockInd + 2 - isSpace;
          inputLength = blockInd;
 
-         fillLine('initTemp');
+         this.fillLine('initTemp');
          //Начинаем перебор вариантов в строке
-         goSearch(blockInd-1, freeCells);
-         fillLine('setCell');
+         this.goSearch(blockInd-1, freeCells);
+         this.solveLineFlag = 0;
+         this.fillLine('setCell');
       }
 
       //Перебор примитивных вариантов, примитивные значит без учета длины блока
-      var goSearch = function (nBlock, freeCells) {
+      this.goSearch = function (nBlock, freeCells) {
          if (nBlock < 0) return;
          if (freeCells < 0) return;
          blocksPosition[nBlock] = 0;
          while (blocksPosition[nBlock] < freeCells) {
-            goSearch(nBlock-1, freeCells - blocksPosition[nBlock]);
-            if (nBlock == 0) makeVarLine(); //Вариант сформирован, можно использовать
+            this.goSearch(nBlock-1, freeCells - blocksPosition[nBlock]);
+            if (nBlock == 0) this.makeVarLine(); //Вариант сформирован, можно использовать
             blocksPosition[nBlock]++;
          }
          return;
       }
 
-      var fillLine = function (type) {
+      this.fillLine = function (type) {
          var i, s = '', s2 = '', s3 = '', symb, cellNum, 
             nB, //Счетчик номера блока
             lB; //Счетчик длины блока
@@ -171,6 +183,8 @@ middle = (function () {
             for (nB = 0; nB < inputLength; nB++) {
                i += blocksPosition[nB];
                for (lB = 0; lB < lengthBloks[nB]; lB++) {
+                  while (variantLine[i] == 2 && i < stringLength) i++;
+                  if (i == stringLength) break;
                   variantLine[i] = 1;
                   i++;
                }
@@ -181,27 +195,35 @@ middle = (function () {
 
          lB = 0; nB = 0;
          for (i = 0; i < stringLength; i++) {
+            cellNum = getCellNumber(i, 'field');
             switch (type) {
                //Инициализируем временный массив
                case 'initVar' : 
-                  variantLine[i] = 0; 
+                  variantLine[i] = cellNum;
+               break;
+
+               //Проверка на наличие пустых ячеек
+               case 'getFree' :
+                  if (!cellNum) isFree++;
+                  if (cellNum == 2) isSpace++;
                break;
 
                //Инициализируем результирующий массив
                case 'initTemp' : 
-                  tempBlockLine[i] = 1; 
-                  tempSpaceLine[i] = 0; 
+                  tempBlockLine[i] = 1;
+                  tempSpaceLine[i] = 0;
                break;
 
                //Заполняем поле найденными единицами + Заполняем поле найденными нулями
                case 'setCell' : 
-                  if (tempBlockLine[i]) setCellNumber(i, 1, 'field'); 
-                  if (tempSpaceLine[i] == 0) setCellNumber(i, 2, 'field'); 
-               break;                  
+                  if (cellNum > 0) break;
+                  this.solveLineFlag = 1; //Установка флага сообщающего что линия изменилась или имеет свободные клетки
+                  if (tempBlockLine[i]) setCellNumber(i, 1, 'field');
+                  if (!tempSpaceLine[i]) setCellNumber(i, 2, 'field');
+               break;
 
                //Слияние перманента и текущего варианта для проверки правильности растановки в данном варианте
                case 'merg' : 
-                  cellNum = getCellNumber(i, 'field');
                   if (cellNum == 1) variantLine[i] |= 1;
                   if (cellNum == 2 && variantLine[i] == 1) return false;
                break;
@@ -222,29 +244,23 @@ middle = (function () {
 
                //Просеиваем (sift), находим столбик единиц из всех вариантов
                case 'sift' : 
-                  s += (variantLine[i]) ? 'x' : '.';
                   tempBlockLine[i] &= variantLine[i];
                   tempSpaceLine[i] |= variantLine[i];
-                  s2 += (tempBlockLine[i]) ? 'x' : '.';
-                  s3 += (tempSpaceLine[i]) ? '.' : '2';
                break;
             }
-         }
-         if (type == 'sift') {
-            console.log(lineInd + ' | ' + s + ' : ' + s2 + ' : ' + s3);
          }
          return true;
       }
 
       //Создание блока пустых или полных ячеек
-      var makeVarLine = function () {
-         fillLine('initVar');
-         fillLine('fill');
-         if (fillLine('merg')) {
-            if (fillLine('check')) {
-               fillLine('sift');
+      this.makeVarLine = function () {
+         this.fillLine('initVar');
+         this.fillLine('fill');
+         //if (this.fillLine('merg')) {
+            if (this.fillLine('check')) {
+               this.fillLine('sift');
             }
-         }
+         //}
       }
 
       //Проверка суммы уже введенных чисел в ячейки с новым числом
