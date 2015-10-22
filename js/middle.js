@@ -173,7 +173,7 @@ middle = (function () {
       }
 
       this.fillLine = function (type) {
-         var i, s = '', s2 = '', s3 = '', symb, cellNum, 
+         var i, tempI, s = '', s2 = '', s3 = '', symb, cellNum, 
             nB, //Счетчик номера блока
             lB; //Счетчик длины блока
 
@@ -181,7 +181,13 @@ middle = (function () {
          if (type == 'fill') {
             i = 0;
             for (nB = 0; nB < inputLength; nB++) {
-               i += blocksPosition[nB];
+               tempI = blocksPosition[nB];
+               while (tempI > 0) {
+                  if (variantLine[i] != 2) {
+                     tempI--;
+                  }
+                  i++;
+               }
                for (lB = 0; lB < lengthBloks[nB]; lB++) {
                   while (variantLine[i] == 2 && i < stringLength) i++;
                   if (i == stringLength) break;
@@ -230,13 +236,14 @@ middle = (function () {
 
                //Проверка слияния на корректность, отсеиваем неверные варианты
                case 'check' : 
-                  if (variantLine[i]) {
+                  if (variantLine[i] == 1) {
                      lB++;
                   } 
-                  if (i == stringLength-1 || !variantLine[i]) {
+                  if (i == stringLength-1 || !(variantLine[i] == 1)) {
                      if (lB > 0) {
                         if (lengthBloks[nB] != lB) return false;
                         nB++;
+                        if (nB >= inputLength) i = stringLength;
                      }
                      lB = 0;
                   } 
@@ -244,10 +251,17 @@ middle = (function () {
 
                //Просеиваем (sift), находим столбик единиц из всех вариантов
                case 'sift' : 
-                  tempBlockLine[i] &= variantLine[i];
+                  tempBlockLine[i] &= (variantLine[i] == 1); //0 и 2 воспринимаеться как 0
                   tempSpaceLine[i] |= variantLine[i];
+                  s += !!(variantLine[i])*1;
+                  s2 += tempBlockLine[i];
+                  s3 += tempSpaceLine[i];
                break;
             }
+         }
+
+         if (type == 'sift') {
+            console.log(lineInd + " | " + s + " : " + s2 + " : " + s3);
          }
          return true;
       }
