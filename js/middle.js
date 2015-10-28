@@ -128,7 +128,7 @@ middle = (function () {
 
       //Количество блоков (blocks) и свободных клеток в строке, первоначальная длина перебора (freeCells)
       this.getQuanBlocksFreeCells = function () {
-         var inputInd, blockInd = 0, pieceLen, i;
+         var inputInd, blockInd = 0, pieceLen, i, sumLenghts;
          isFree = 0; isSpace = 0;
          this.fillLine('getFree');
          if (!isFree) {
@@ -136,25 +136,20 @@ middle = (function () {
             return;
          }
 
-         //Вычислаем количество своб клеток нужно 1 раз на вариант!!!!!!!!, сейчас вычисление каждый раз
          //Вычислаем количество своб клеток
-         freeCells = 0;
+         sumLenghts = 0;
          for (inputInd = 0; inputInd < configMap.qBlocks; inputInd++) {
             pieceLen = getCellNumber(inputInd);
             if (pieceLen > 0) {
                lengthBloks[blockInd] = pieceLen;
                blocksPosition[blockInd] = 0;
-               freeCells += pieceLen;
+               sumLenghts += pieceLen;
                blockInd++;
             }
          }
 
-         //Неправильные подсчеты когда уже есть 2-ки и эти двойки перекрывают пробелы между блоками
          //Количество свободных клеток для перемещения
-         if (isSpace) {
-            blockInd = 1;
-         }
-         freeCells = stringLength - freeCells + 1 - isSpace;
+         freeCells = stringLength - sumLenghts - blockInd + 2 - isSpace;
          inputLength = blockInd;
 
          this.fillLine('initTemp');
@@ -171,7 +166,11 @@ middle = (function () {
          blocksPosition[nBlock] = 0;
          while (blocksPosition[nBlock] < freeCells) {
             this.goSearch(nBlock-1, freeCells - blocksPosition[nBlock]);
-            if (nBlock == 0) this.makeVarLine(); //Вариант сформирован, можно использовать
+            if (nBlock == 0) {
+            	//Вариант сформирован, можно использовать
+            	//Здесь нужно обработать makeVarLine False
+            	this.makeVarLine(); 
+            } 
             blocksPosition[nBlock]++;
          }
          return;
@@ -180,13 +179,14 @@ middle = (function () {
       this.fillLine = function (type) {
          var i, tempI, s = '', s2 = '', s3 = '', symb, cellNum, 
             isSpaceFlagFirst = 0, isSpaceFlagLast = 0, isSpaceFirst = 0, isSpaceLast = 0, 
+            tempSpaceLineFlag = 1, tempBlockLineFlag = 0,
             nB, //Счетчик номера блока
             lB; //Счетчик длины блока
 
          //Заполняем массив блоками согласно варианту
          if (type == 'fill') {
             i = 0;
-            for (nB = 0; nB <= inputLength; nB++) {
+            for (nB = 0; nB < inputLength; nB++) {
                tempI = blocksPosition[nB];
                while (tempI > 0) {
                   if (variantLine[i] != 2) {
@@ -263,7 +263,7 @@ middle = (function () {
                      if (lB > 0) {
                         if (lengthBloks[nB] != lB) return false;
                         nB++;
-                        if (nB >= inputLength) i = stringLength;
+                        if (nB > inputLength) i = stringLength;
                      }
                      lB = 0;
                   } 
@@ -273,6 +273,8 @@ middle = (function () {
                case 'sift' : 
                   tempBlockLine[i] &= (variantLine[i] == 1); //0 и 2 воспринимаеться как 0
                   tempSpaceLine[i] |= variantLine[i];
+                  tempBlockLineFlag |= !!tempBlockLine[i];
+                  tempSpaceLineFlag &= !!tempSpaceLine[i];
                   s += !!(variantLine[i])*1;
                   s2 += tempBlockLine[i];
                   s3 += tempSpaceLine[i];
@@ -281,7 +283,10 @@ middle = (function () {
          }
 
          if (type == 'sift') {
-            console.log(lineInd + " | " + s + " : " + s2 + " : " + s3);
+            console.log(lineInd + " vl:" + s + " bl:" + s2 + " sl:" + s3 + " bf:" 
+            	+ tempBlockLineFlag + " sf:" + tempSpaceLineFlag + " sumf:" + 
+            	(!tempBlockLineFlag && tempSpaceLineFlag));
+            	if (!tempBlockLineFlag && tempSpaceLineFlag) return false;
          }
          return true;
       }
@@ -292,7 +297,7 @@ middle = (function () {
          this.fillLine('fill');
          //if (this.fillLine('merg')) {
             if (this.fillLine('check')) {
-               this.fillLine('sift');
+               if (!this.fillLine('sift')) return false;
             }
          //}
       }
