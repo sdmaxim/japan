@@ -28,11 +28,11 @@ middle = (function () {
    margineCss = 2;
 
    var solve = function () {
-      var i;
+      var i, x=0;
       solveFlag = 1;
       //В разработке нужно добавить флаг по которому будет продолжаться повторение
-      while (solveFlag) {
-         solveFlag = 0;
+      while (solveFlag && x < 5) {
+         solveFlag = 0; x++
          for (i = 0; i < configMap.width + configMap.height; i++) {
             lines[i].getQuanBlocksFreeCells();
             if (lines[i].solveLineFlag) solveFlag = 1;
@@ -136,6 +136,7 @@ middle = (function () {
             return;
          }
 
+         //Вычислаем количество своб клеток нужно 1 раз на вариант!!!!!!!!, сейчас вычисление каждый раз
          //Вычислаем количество своб клеток
          freeCells = 0;
          for (inputInd = 0; inputInd < configMap.qBlocks; inputInd++) {
@@ -148,8 +149,12 @@ middle = (function () {
             }
          }
 
+         //Неправильные подсчеты когда уже есть 2-ки и эти двойки перекрывают пробелы между блоками
          //Количество свободных клеток для перемещения
-         freeCells = stringLength - freeCells - blockInd + 2 - isSpace;
+         if (isSpace) {
+            blockInd = 1;
+         }
+         freeCells = stringLength - freeCells + 1 - isSpace;
          inputLength = blockInd;
 
          this.fillLine('initTemp');
@@ -174,13 +179,14 @@ middle = (function () {
 
       this.fillLine = function (type) {
          var i, tempI, s = '', s2 = '', s3 = '', symb, cellNum, 
+            isSpaceFlagFirst = 0, isSpaceFlagLast = 0, isSpaceFirst = 0, isSpaceLast = 0, 
             nB, //Счетчик номера блока
             lB; //Счетчик длины блока
 
          //Заполняем массив блоками согласно варианту
          if (type == 'fill') {
             i = 0;
-            for (nB = 0; nB < inputLength; nB++) {
+            for (nB = 0; nB <= inputLength; nB++) {
                tempI = blocksPosition[nB];
                while (tempI > 0) {
                   if (variantLine[i] != 2) {
@@ -211,7 +217,21 @@ middle = (function () {
                //Проверка на наличие пустых ячеек
                case 'getFree' :
                   if (!cellNum) isFree++;
-                  if (cellNum == 2) isSpace++;
+
+                  if (cellNum == 2 && !isSpaceFlagFirst) {
+                     isSpaceFirst++;
+                  } else {
+                     isSpaceFlagFirst++;
+                  }
+
+                  if (getCellNumber(stringLength-i-1, 'field') == 2 && !isSpaceFlagLast) {
+                     isSpaceLast++;
+                  } else {
+                     isSpaceFlagLast++;
+                  }
+
+                  isSpace = isSpaceFirst + isSpaceLast;
+
                break;
 
                //Инициализируем результирующий массив
