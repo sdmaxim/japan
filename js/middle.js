@@ -31,7 +31,7 @@ middle = (function () {
       var i, x=0;
       solveFlag = 1;
       //В разработке нужно добавить флаг по которому будет продолжаться повторение
-      while (solveFlag && x < 5) {
+      while (solveFlag && x < 8) {
          solveFlag = 0; x++
          for (i = 0; i < configMap.width + configMap.height; i++) {
             lines[i].getQuanBlocksFreeCells();
@@ -161,19 +161,19 @@ middle = (function () {
 
       //Перебор примитивных вариантов, примитивные значит без учета длины блока
       this.goSearch = function (nBlock, freeCells) {
-         if (nBlock < 0) return;
-         if (freeCells < 0) return;
+         if (nBlock < 0) return true;
+         if (freeCells < 0) return true;
          blocksPosition[nBlock] = 0;
          while (blocksPosition[nBlock] < freeCells) {
-            this.goSearch(nBlock-1, freeCells - blocksPosition[nBlock]);
+            if (!this.goSearch(nBlock-1, freeCells - blocksPosition[nBlock])) return false;
             if (nBlock == 0) {
             	//Вариант сформирован, можно использовать
             	//Здесь нужно обработать makeVarLine False
-            	this.makeVarLine(); 
+            	if (!this.makeVarLine()) return false; 
             } 
             blocksPosition[nBlock]++;
          }
-         return;
+         return true;
       }
 
       this.fillLine = function (type) {
@@ -275,17 +275,17 @@ middle = (function () {
                   tempSpaceLine[i] |= variantLine[i];
                   tempBlockLineFlag |= !!tempBlockLine[i];
                   tempSpaceLineFlag &= !!tempSpaceLine[i];
-                  s += !!(variantLine[i])*1;
+                  /*s += !!(variantLine[i])*1;
                   s2 += tempBlockLine[i];
-                  s3 += tempSpaceLine[i];
+                  s3 += tempSpaceLine[i];*/
                break;
             }
          }
 
          if (type == 'sift') {
-            console.log(lineInd + " vl:" + s + " bl:" + s2 + " sl:" + s3 + " bf:" 
+            /*console.log(lineInd + " vl:" + s + " bl:" + s2 + " sl:" + s3 + " bf:" 
             	+ tempBlockLineFlag + " sf:" + tempSpaceLineFlag + " sumf:" + 
-            	(!tempBlockLineFlag && tempSpaceLineFlag));
+            	(!tempBlockLineFlag && tempSpaceLineFlag));*/
             	if (!tempBlockLineFlag && tempSpaceLineFlag) return false;
          }
          return true;
@@ -295,11 +295,10 @@ middle = (function () {
       this.makeVarLine = function () {
          this.fillLine('initVar');
          this.fillLine('fill');
-         //if (this.fillLine('merg')) {
-            if (this.fillLine('check')) {
-               if (!this.fillLine('sift')) return false;
-            }
-         //}
+         if (this.fillLine('check')) {
+            if (!this.fillLine('sift')) return false;
+         }
+         return true;
       }
 
       //Проверка суммы уже введенных чисел в ячейки с новым числом
