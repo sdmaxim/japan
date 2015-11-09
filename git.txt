@@ -1,4 +1,4 @@
-git init
+﻿git init
 git add *.*
 git add -all //для удаления чего-либа
 git status
@@ -7,3 +7,7 @@ git remote add japan https://github.com/sdmaxim/japan.git
 git push japan master
 git pull japan master
 git config --global http.proxy http://username:password@cproxy.umc.com.ua:3128
+
+
+для NodeJS:
+npm config set proxy http://"username:password"cproxy.umc.com.ua:3128
